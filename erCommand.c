@@ -121,18 +121,19 @@ static void parseResponse(char * erCmd) {
 
 	if (strlen(erCmd) != 139) {
 		printf("ER response should be 139 characters long, but only got %d.\n",
-			strlen(erCmd));
+			   (int)strlen(erCmd));
 		return;
 	}
 
 	erResponse = strdup(erCmd);
 
 	sscanf(erCmd,
-		"ER%4s%2s%10s%10s%c%c%c%c%c%c%c%c%c%c%c%c%2s%2s%c%c%8s%18s%10s%54s%2s;",
-		fmem.addr,
-		fmem.bytesRead,
-		fmem.vfoAfreq,
-		fmem.vfoBfreq,
+/*		"ER%4s%2s%10c%10c%c%c%c%c%c%c%c%c%c%c%c%c%2s%2s%c%c%8s%18s%10s%54s%2s;",*/
+		   "ER%4s%2s%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%c%c%c%c%c%c%c%c%c%c%c%c%2s%2s%c%c%8s%18s%10s%54s%2s;",
+		   fmem.addr,
+		   fmem.bytesRead,
+		   &fmem.vfoAfreq.MHz,&fmem.vfoAfreq.kHz10,&fmem.vfoAfreq.hHz,&fmem.vfoAfreq.daHz,&fmem.vfoAfreq.Hz,
+		   &fmem.vfoBfreq.MHz,&fmem.vfoBfreq.kHz10,&fmem.vfoBfreq.hHz,&fmem.vfoBfreq.daHz,&fmem.vfoBfreq.Hz,
 
 		&fmem.vfoBmode,
 		&fmem.vfoAmode,

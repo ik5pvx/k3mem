@@ -1,3 +1,12 @@
+
+typedef struct { 
+	unsigned int MHz;
+	unsigned int kHz10;
+	unsigned int hHz;
+	unsigned int daHz;
+	unsigned int Hz;
+} k3VfoFreq;
+
 typedef struct {
 
 	char addr[5];
@@ -21,9 +30,11 @@ typedef struct {
 	char vfoFlags5;
 	char vfoFlags6;
 	char vfoFlags7;
-	char vfoAfreq[11];
+/*	char vfoAfreq[11];*/
+	k3VfoFreq vfoAfreq;
 	char vfoAmode;
-	char vfoBfreq[11];
+/*	char vfoBfreq[11];*/
+	k3VfoFreq vfoBfreq;
 	char vfoBmode;
 
 } k3FreqMem;

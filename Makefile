@@ -4,8 +4,8 @@ TARGET = k3mem
 $(TARGET): $(OBJS)
 	gcc -o $(TARGET) $(OBJS)
 
-#main.o: erCommand.h
-#erCommand.o: erCommand.h
+main.o: erCommand.h
+erCommand.o: erCommand.h erCommandInfo.h
 
 clean:
 	-rm $(TARGET) $(OBJS)
