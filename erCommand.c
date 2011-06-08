@@ -574,7 +574,7 @@ static void printVerbose() {
 	int fa = freqA();
 	int fb = freqB();
 
-	if (fa == -1 && fb == -1) {
+	if (fa == -1) {
 		/* Empty memory location. */
 		printf("\n");
 		return;
@@ -586,9 +586,9 @@ static void printVerbose() {
 	if (strcmp(lbl, "     "))
 		printf("Label: %s\n", lbl);
 	free(lbl);
-	if (fa == -1)
+/*	if (fa == -1)
 		printf("VFO A: \n");
-	else
+		else*/
 		printf("VFO A: %d / %s\n", freqA(), modeA());
 	if (fb == -1)
 		printf("VFO B: \n");
