@@ -537,7 +537,7 @@ static void printBrief() {
 
 static void printRaw() {
 
-	if (0) {
+/*	if (0) {
 		printf("Response:\n\n");
 		printf("%4s %2s               [addr checksum]\n",
 			fmem.addr, fmem.bytesRead);
@@ -558,10 +558,10 @@ static void printRaw() {
 		printf("        [label]\n");
 		printf("%54s\n", fmem.empty2);
 		printf("%2s                    [checksum]\n\n", fmem.checksumResp);
-	} else {
+		} else { */
 		spaceHexString(erResponse+2, 10);
 		printf("\n");
-	}
+/*	} */
 
 }
 
