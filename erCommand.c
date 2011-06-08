@@ -185,7 +185,7 @@ static int freqB() {
  * frequency.
  */
 
-static int calcFreq(char fStr[], char xvtrFlags) {
+/* static int calcFreq(char fStr[], char xvtrFlags) {
 
 	int MHz, kHz, kHzX10, HzX100, Hzx10, Hz;
 	int freqVal;
@@ -195,7 +195,7 @@ static int calcFreq(char fStr[], char xvtrFlags) {
 
 	sscanf(fStr, "%2x%2x%2x%2x%2x", &MHz, &kHzX10, &HzX100, &Hzx10, &Hz);
 
-	if (xvtrFlags & 1) /* 2m only? */
+	if (xvtrFlags & 1) /* 2m only? *//*
 		switch (MHz) {
 		case 28: MHz = 144; break;
 		case 29: MHz = 145; break;
@@ -216,6 +216,24 @@ used for print out
 	kHz = (freqVal - MHz * 1e6) / 1e3;
 	Hz = freqVal - MHz * 1e6 - kHz * 1e3;
 #endif
+
+	return freqVal;
+} */
+
+static int calcFreq(k3VfoFreq f, char xvtrFlags) {
+	int freqVal;
+
+	if ( f.MHz == 0xFF )
+		return -1;
+	
+	freqVal = f.MHz * 1e6
+		+ f.kHz10   * 1e4
+		+ f.hHz     * 1e2
+		+ f.daHz    * 10
+		+ f.Hz;
+
+	if (xvtrFlags & 1)
+		printf "FOO\n"; /* FIXME: get transverter base frequency and add it */
 
 	return freqVal;
 }
