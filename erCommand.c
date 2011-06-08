@@ -233,7 +233,7 @@ static int calcFreq(k3VfoFreq f, char xvtrFlags) {
 		+ f.Hz;
 
 	if (xvtrFlags & 1)
-		printf "FOO\n"; /* FIXME: get transverter base frequency and add it */
+		printf ("FOO\n"); /* FIXME: get transverter base frequency and add it */
 
 	return freqVal;
 }
@@ -516,20 +516,23 @@ static void printBrief() {
 	fb = freqB();
 
 	if (fa == -1)
-		printf("- / -   ");
-	else
-		printf("%d / %s   ", fa, modeA());
-	if (fb == -1)
-		printf("- / -   ");
-	else
-		printf("%d / %s   ", fb, modeB());
-	lbl = getLabel();
-	printf("%s", lbl);
-	free(lbl);
-	float pl = plTone();
-	if (isModeFm() && pl > 0)
-		printf("    PL %.1f Hz", pl);
-	printf("\n");
+		/*printf("- / -   ");*/
+		printf("(empty)\n");
+	else {
+		lbl = getLabel();
+		printf("%6s:", lbl);
+		free(lbl);
+		printf("%10d%10s", fa, modeA());
+		if (fb == -1)
+			printf("%23s","");
+		else
+			printf(" / %10d%10s", fb, modeB());
+		float pl = plTone();
+		if (isModeFm() && pl > 0)
+			printf("    PL %.1f Hz", pl);
+		printf(".\n"); /* FIXME: try some memories with the pl tone and 
+						  get the spacing right */
+	}
 }
 
 static void printRaw() {
