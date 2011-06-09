@@ -20,25 +20,26 @@ main(int argc, char *argv[]) {
 
 	memInfo = newK3FreqMemInfo();
 
+	if (argc <= 1) usage(argv[0]);
 	while ((c = getopt(argc, argv, "a:bimrs:")) != EOF) {
 		switch (c) {
-		case 'a':
+		case 'a': /* translate mem channel to memory address */
 			retrieveAddress(strdup(optarg));
 			exit(0);
 			break;
-		case 'b':
+		case 'b': /* brief listing */
 			gotBrief = 1;
 			break;
-		case 'i':
+		case 'i': /* verbose listing */
 			gotMemIndex = 1;
 			break;
-		case 'm':
+		case 'm': /* select a memory channel */
 			gotMemChoice = 1;
 			break;
-		case 'r':
+		case 'r': /* raw listing */
 			gotRaw = 1;
 			break;
-		case 's':
+		case 's': /* translate a raw response */
 			memInfo->setErResponse(optarg);
 			memInfo->printVerbose();
 			break;
@@ -123,6 +124,8 @@ memIndexToAddr(int index, char * cmd) {
 }
 
 usage(char * progName) {
-	printf("Usage: %s [-i K3memIndex] [-r ERresponse]\n", progName);
+	printf("Usage:\n%s [-(i|r|b) K3memIndex]\n", progName);
+	printf("%s [-a K3memIndex]\n", progName);
+	printf("%s [-s ERresponse]\n", progName);
 	exit(1);
 }
