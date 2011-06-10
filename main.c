@@ -16,36 +16,30 @@ main(int argc, char *argv[]) {
 		gotRaw = 0,           /* -r */
 		i, j,
 		index;
+	int longval;
+	struct option long_options[] = {
+		{"address",required_argument,0,'a'},
+		{"brief",optional_argument,0,'b'},
+		{"index",optional_argument,0,'i'},
+		{"memset",optional_argument,0,'m'},
+		{"raw",optional_argument,0,'r'},
+		{"show",required_argument,0,'s'},
+		{"version",no_argument,&longval,'v'},
+		{0,0,0,0}
+	};
+	int option_index = 0;
+
+
 	k3FreqMemInfo *memInfo;
 
 	memInfo = newK3FreqMemInfo();
 
 	if (argc <= 1) usage(argv[0]);
-	while (1) {
-		int option_index = 0;
-		static struct option long_options[] = {
-			{"address",required_argument,0,0},
-			{"brief",optional_argument,0,0},
-			{"index",optional_argument,0,0},
-			{"memset",optional_argument,0,0},
-			{"raw",optional_argument,0,0},
-			{"show",required_argument,0,0},
-		};
-
-		c = getopt_long(argc, argv, "a:bimrs:", long_options, &option_index);
-		if (c == -1)
-			break;
-		printf ("%d %d\n",c,option_index);
+	while (( c = getopt_long(
+				 argc, argv, "a:bimrs:", long_options, &option_index)
+			   ) != -1) {
+/*		printf ("%c %d\n",c,option_index);*/
 		switch (c) {
-/*		case '0': */
-			/* If this option set a flag, do nothing else now. */
-/*			if (long_options[option_index].flag != 0)
-				break;
-			printf ("option %s", long_options[option_index].name);
-			if (optarg)
-				printf (" with arg %s", optarg);
-			printf ("\n");
-			break; */
 		case 'a': /* translate mem channel to memory address */
 			retrieveAddress(strdup(optarg));
 			exit(0);
@@ -65,6 +59,14 @@ main(int argc, char *argv[]) {
 		case 's': /* translate a raw response */
 			memInfo->setErResponse(optarg);
 			memInfo->printVerbose();
+			break;
+		case 0:   /* this handles longoptions with no short counterpart */
+			switch (longval) {
+			case 'v': /* version */ /* FIXME: define version somewhere */
+				printf("Version undefined! (%c %d)\n", c, option_index);
+				break;
+				/* no default necessary here */
+			}
 			break;
 		default:
 			printf ("option %s", long_options[option_index].name);
