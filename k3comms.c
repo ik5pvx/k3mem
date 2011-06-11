@@ -41,20 +41,23 @@ struct displayVals {
 	short flashStatus[8];
 } k2display;
 
-int openPort(void)
+int openPort(char *device)
 {
 	int fd;
 
-	fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY | O_NDELAY);
+	fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
 	/* fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY); */
-	if (fd == -1)
-		perror("openPort: Unable to open /dev/ttyS0 - ");
+	if (fd == -1) {
+		char *e;
+		sprintf(e,"openPort: Unable to open %s - ",device);
+		perror(e);
+	}
 	else
 		fcntl(fd, F_SETFL, 0);
 	return(fd);
 }
 
-void configurePort(int portFd) {
+void configurePort(int portFd, int speed) {
 	/*Configure port*/
 	struct termios options;
 
@@ -62,8 +65,8 @@ void configurePort(int portFd) {
 	tcgetattr(portFd, &options);
 
 	/*Set the Baud rates to 38400*/
-	cfsetispeed(&options, B38400);
-	cfsetospeed(&options, B38400);
+	cfsetispeed(&options, speed);
+	cfsetospeed(&options, speed);
 
 	/*Enable received and set local mode*/
 	options.c_cflag |= (CLOCAL | CREAD);

@@ -7,8 +7,8 @@
 #ifndef __CEXTRACT__
 #if __STDC__
 
-extern int openPort ( void );
-extern void configurePort ( int portFd );
+extern int openPort ( char *device );
+extern void configurePort ( int portFd, int speed );
 extern int abSwap ( int fd );
 extern int getKeyerSpeed ( int fd );
 extern void setKeyerSpeed ( int fd, int speed );

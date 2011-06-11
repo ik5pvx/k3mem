@@ -2,10 +2,11 @@
 #include <string.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <termios.h>
 #include "erCommandInfo.h"
 #include "k3comms.h"
 
-void retrieveAddress(char * addr);
+void retrieveAddress(char * addr, char *device, int speed);
 
 main(int argc, char *argv[]) {
 
@@ -28,7 +29,8 @@ main(int argc, char *argv[]) {
 		{0,0,0,0}
 	};
 	int option_index = 0;
-
+	char device[256] = "/dev/ttyS0";
+	int speed=B38400;
 
 	k3FreqMemInfo *memInfo;
 
@@ -41,7 +43,7 @@ main(int argc, char *argv[]) {
 /*		printf ("%c %d\n",c,option_index);*/
 		switch (c) {
 		case 'a': /* translate mem channel to memory address */
-			retrieveAddress(strdup(optarg));
+			retrieveAddress(strdup(optarg),device,speed);
 			exit(0);
 			break;
 		case 'b': /* brief listing */
@@ -78,8 +80,8 @@ main(int argc, char *argv[]) {
 		}
 	}
 
-	int fd = openPort();
-	configurePort(fd);
+	int fd = openPort(device);
+	configurePort(fd,speed);
 
 	for (i = optind; i < argc; i++) {
 
@@ -124,10 +126,10 @@ main(int argc, char *argv[]) {
 	close(fd);
 }
 
-void retrieveAddress(char * addr) {
+void retrieveAddress(char * addr,char *device,int speed) {
 	int cnt;
-	int fd = openPort();
-	configurePort(fd);
+	int fd = openPort(device);
+	configurePort(fd,speed);
 	sscanf(addr, "%*c%2X;", &cnt);
 	printf("cmd is '%s', cnt = %d\n", addr, cnt);
 	char * response = k3Command(fd, addr, 10, cnt);
