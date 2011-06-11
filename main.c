@@ -15,12 +15,13 @@ main(int argc, char *argv[]) {
 	    gotMemChoice = 0,     /* -m */
 	    gotMemIndex = 0,      /* -i */
 		gotRaw = 0,           /* -r */
-		i, j,
+		i, j, l,
 		index;
 	int longval;
 	struct option long_options[] = {
 		{"address",required_argument,0,'a'},
 		{"brief",optional_argument,0,'b'},
+		{"device",required_argument,0,'d'},
 		{"index",optional_argument,0,'i'},
 		{"memset",optional_argument,0,'m'},
 		{"raw",optional_argument,0,'r'},
@@ -29,7 +30,8 @@ main(int argc, char *argv[]) {
 		{0,0,0,0}
 	};
 	int option_index = 0;
-	char device[256] = "/dev/ttyS0";
+	char *device = malloc(256);
+	strcpy(device, "/dev/ttyS0");
 	int speed=B38400;
 
 	k3FreqMemInfo *memInfo;
@@ -38,9 +40,8 @@ main(int argc, char *argv[]) {
 
 	if (argc <= 1) usage(argv[0]);
 	while (( c = getopt_long(
-				 argc, argv, "a:bimrs:", long_options, &option_index)
+				 argc, argv, "a:bd:imrs:", long_options, &option_index)
 			   ) != -1) {
-/*		printf ("%c %d\n",c,option_index);*/
 		switch (c) {
 		case 'a': /* translate mem channel to memory address */
 			retrieveAddress(strdup(optarg),device,speed);
@@ -48,6 +49,19 @@ main(int argc, char *argv[]) {
 			break;
 		case 'b': /* brief listing */
 			gotBrief = 1;
+			break;
+		case 'd': /* serial device specified */
+/*			gotDevice = 1;*/
+			printf ("%c %d %s\n",c,option_index,optarg);
+			l=strlen(optarg);
+			printf ("foo: %d\n",l);
+			if (l<255) {
+				strncpy(device,optarg,l);
+				device[l]='\0';
+			} else {
+				fprintf(stderr,"Device name too long:\n%s\n",optarg);
+				exit (1);
+			}
 			break;
 		case 'i': /* verbose listing */
 			gotMemIndex = 1;
@@ -124,6 +138,7 @@ main(int argc, char *argv[]) {
 		}
 	}
 	close(fd);
+	free(device);
 }
 
 void retrieveAddress(char * addr,char *device,int speed) {
