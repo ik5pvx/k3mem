@@ -25,6 +25,7 @@ main(int argc, char *argv[]) {
 		{"index",optional_argument,0,'i'},
 		{"memset",optional_argument,0,'m'},
 		{"raw",optional_argument,0,'r'},
+		{"speed",required_argument,0,'s'},
 		{"version",no_argument,&longval,'v'},
 		{"extract",required_argument,0,'x'},
 		{0,0,0,0}
@@ -33,6 +34,7 @@ main(int argc, char *argv[]) {
 	char *device = malloc(256);
 	strcpy(device, "/dev/ttyS0");
 	int speed=B38400;
+	int s=0;
 
 	k3FreqMemInfo *memInfo;
 
@@ -51,10 +53,7 @@ main(int argc, char *argv[]) {
 			gotBrief = 1;
 			break;
 		case 'd': /* serial device specified */
-/*			gotDevice = 1;*/
-			printf ("%c %d %s\n",c,option_index,optarg);
 			l=strlen(optarg);
-			printf ("foo: %d\n",l);
 			if (l<255) {
 				strncpy(device,optarg,l);
 				device[l]='\0';
@@ -71,6 +70,26 @@ main(int argc, char *argv[]) {
 			break;
 		case 'r': /* raw listing */
 			gotRaw = 1;
+			break;
+		case 's': /* serial speed specified */
+			s = atoi(optarg);
+			switch (s) {
+			case 4800:
+				speed=B4800;
+				break;
+			case 9600:
+				speed=B9600;
+				break;
+			case 19200:
+				speed=B19200;
+				break;
+			case 38400:
+				speed=B38400;
+				break;
+			default: 
+				fprintf(stderr,"Unsupported speed %s:\nK3 only allows 4800, 9600, 19200 or 38400\n",optarg);
+			exit (1);
+			}
 			break;
 		case 'x': /* translate a raw response */
 			memInfo->setErResponse(optarg);
