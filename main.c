@@ -25,8 +25,8 @@ main(int argc, char *argv[]) {
 		{"index",optional_argument,0,'i'},
 		{"memset",optional_argument,0,'m'},
 		{"raw",optional_argument,0,'r'},
-		{"show",required_argument,0,'s'},
 		{"version",no_argument,&longval,'v'},
+		{"extract",required_argument,0,'x'},
 		{0,0,0,0}
 	};
 	int option_index = 0;
@@ -72,7 +72,7 @@ main(int argc, char *argv[]) {
 		case 'r': /* raw listing */
 			gotRaw = 1;
 			break;
-		case 's': /* translate a raw response */
+		case 'x': /* translate a raw response */
 			memInfo->setErResponse(optarg);
 			memInfo->printVerbose();
 			break;
@@ -172,6 +172,6 @@ memIndexToAddr(int index, char * cmd) {
 usage(char * progName) {
 	printf("Usage:\n%s [-(i|r|b) K3memIndex]\n", progName);
 	printf("%s [-a K3memIndex]\n", progName);
-	printf("%s [-s ERresponse]\n", progName);
+	printf("%s [-x ERresponse]\n", progName);
 	exit(1);
 }
