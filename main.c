@@ -10,7 +10,7 @@ void retrieveAddress(char * addr, char *device, int speed);
 
 main(int argc, char *argv[]) {
 
-	char *addr, c, cmd[9], *response;
+	char *addr, c, cmd[9], *response, *isK3;
 	int gotBrief = 0,         /* -b */
 	    gotMemChoice = 0,     /* -m */
 	    gotMemIndex = 0,      /* -i */
@@ -34,7 +34,7 @@ main(int argc, char *argv[]) {
 	char *device = malloc(256);
 	strcpy(device, "/dev/ttyS0");
 	int speed=B38400;
-	int s=0;
+	int argspeed=0;
 
 	k3FreqMemInfo *memInfo;
 
@@ -72,8 +72,8 @@ main(int argc, char *argv[]) {
 			gotRaw = 1;
 			break;
 		case 's': /* serial speed specified */
-			s = atoi(optarg);
-			switch (s) {
+			argspeed = atoi(optarg);
+			switch (argspeed) {
 			case 4800:
 				speed=B4800;
 				break;
@@ -116,45 +116,55 @@ main(int argc, char *argv[]) {
 	int fd = openPort(device);
 	configurePort(fd,speed);
 
-	for (i = optind; i < argc; i++) {
+	char cmdK3[4]="K3;";
+	isK3 = k3Command(fd,cmdK3,50,4);
 
-		char *curArg = argv[optind++];
-		char *dashIndex = strchr(curArg, '-');
-		int loIndex, hiIndex;
+	if ( (strncmp(isK3,"K3",2) == 0) ) { 
 
-		if (dashIndex != NULL)
-			sscanf(curArg, "%d-%d", &loIndex, &hiIndex);
-		else
-			loIndex = hiIndex = atoi(curArg);
+		for (i = optind; i < argc; i++) {
 
-		for (index = loIndex; index <= hiIndex; index++) {
+			char *curArg = argv[optind++];
+			char *dashIndex = strchr(curArg, '-');
+			int loIndex, hiIndex;
 
-			if (index < 0 || index > 199)
-				usage(argv[0]);
+			if (dashIndex != NULL)
+				sscanf(curArg, "%d-%d", &loIndex, &hiIndex);
+			else
+				loIndex = hiIndex = atoi(curArg);
 
-			if (gotMemChoice) {
-				setMemChannel(fd, index);
-				exit(0); /* More than 1 makes no sense. */
-			}
+			for (index = loIndex; index <= hiIndex; index++) {
 
-			memIndexToAddr(index, cmd); /* Calculate eeprom address of index. */
-			response = k3Command(fd, cmd, 10, 139); /* Send ER cmd. */
-			memInfo->setErResponse(response);
-			free(response);
+				if (index < 0 || index > 199)
+					usage(argv[0]);
 
-			if (gotBrief) {
-				printf("%3d: ", index);
-				memInfo->printBrief();
-			}
-			if (gotRaw) {
-				printf("%3d: ", index);
-				memInfo->printRaw();
-			}
-			if (gotMemIndex) {
-				printf("\nMemory channel %d\n", index);
-				memInfo->printVerbose();
+				if (gotMemChoice) {
+					setMemChannel(fd, index);
+					exit(0); /* More than 1 makes no sense. */
+				}
+
+				memIndexToAddr(index, cmd); /* Calculate eeprom address of index. */
+				response = k3Command(fd, cmd, 10, 139); /* Send ER cmd. */
+				memInfo->setErResponse(response);
+				free(response);
+
+				if (gotBrief) {
+					printf("%3d: ", index);
+					memInfo->printBrief();
+				}
+				if (gotRaw) {
+					printf("%3d: ", index);
+					memInfo->printRaw();
+				}
+				if (gotMemIndex) {
+					printf("\nMemory channel %d\n", index);
+					memInfo->printVerbose();
+				}
 			}
 		}
+	} else {
+		fprintf(stderr,
+				"Whatever is connected on %s at %d baud is not a K3.\nResponse was: %s\n",
+				device, argspeed, isK3);
 	}
 	close(fd);
 	free(device);
