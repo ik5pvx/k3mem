@@ -6,7 +6,7 @@
 #include "erCommandInfo.h"
 #include "k3comms.h"
 
-void retrieveAddress(char * addr, char *device, int speed);
+void retrieveAddress(char * addr, char *device, int speed, int argspeed);
 
 main(int argc, char *argv[]) {
 
@@ -46,7 +46,7 @@ main(int argc, char *argv[]) {
 			   ) != -1) {
 		switch (c) {
 		case 'a': /* translate mem channel to memory address */
-			retrieveAddress(strdup(optarg),device,speed);
+			retrieveAddress(strdup(optarg),device,speed,argspeed);
 			exit(0);
 			break;
 		case 'b': /* brief listing */
@@ -170,7 +170,8 @@ main(int argc, char *argv[]) {
 	free(device);
 }
 
-void retrieveAddress(char * addr,char *device,int speed) {
+void retrieveAddress(char * addr,char *device,int speed, int argspeed) {
+	char *isK3;
 	int cnt;
 	int fd = openPort(device);
 	configurePort(fd,speed);
