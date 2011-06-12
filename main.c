@@ -123,7 +123,7 @@ main(int argc, char *argv[]) {
 
 	if ( (strncmp(isK3,"K3",2) == 0) ) { 
 
-		k3BandMemory bandmemory[24];
+		k3BandMemory bandmemory[25];
 		k3TransverterState transverter[9];
 		getBandMemories();
 		getTransverterState();
@@ -224,8 +224,37 @@ usage(char * progName) {
 }
 
 void getBandMemories() {
+	int i, addr, count, chksum;
+	char cmd[12];
+
+	/* read 4 bandmemories at a time, including reserved ones 
+	   plus the last one (25 bands total) */
+	count = 4 * BANDMEMORY_SIZE;
+	for (i=0;i<6;i++) { 
+		addr = NORMAL_BANDMEMORY_START + i * count;
+		sprintf(cmd,"ER%04X%02X__;",addr,count);
+
+		/* Fill in the underscores in above string with checksum. */
+		char * cs = malloc(3);
+		checksum(cmd, 2, 2+6, cs);
+		strncpy(cmd+2+6, cs, 2);
+		free(cs);
+
+		fprintf(stderr,"Read Band Memory: %s\n",cmd);
+	}
+	addr = NORMAL_BANDMEMORY_START + BANDMEMORY_SIZE * 24;
+	sprintf(cmd,"ER%04X%02X__;",addr,BANDMEMORY_SIZE);
+	char * cs = malloc(3);
+	checksum(cmd, 2, 2+6, cs);
+	strncpy(cmd+2+6, cs, 2);
+	free(cs);
+	fprintf(stderr,"Read Band Memory: %s\n",cmd);
+		
+	
+		
 }
 
 void getTransverterState() {
 }
+
 

@@ -106,9 +106,12 @@ typedef struct {
 } k3TransverterState;
 
 enum BandIndex {
-	m160, m80, m60, m40, m30, m20, m17, m15, m12, m10, m6, /* normal bands */
-	r11,r12,r13,r14,r15,                                   /* reserved */
-	xv1, xv2, xv3, xv4, xv5, xv6, xv7, xv8, xv9            /* transverters */
+/* normal bands: 0-10 */
+	m160, m80, m60, m40, m30, m20, m17, m15, m12, m10, m6, 
+/* reserved bands: 11-15 */
+	r11,r12,r13,r14,r15,                                   
+/* transverter bands: 16-24  */
+	xv1, xv2, xv3, xv4, xv5, xv6, xv7, xv8, xv9
 };
 
 #include "erCommand.h"
