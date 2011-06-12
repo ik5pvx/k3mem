@@ -174,11 +174,21 @@ void retrieveAddress(char * addr,char *device,int speed) {
 	int cnt;
 	int fd = openPort(device);
 	configurePort(fd,speed);
-	sscanf(addr, "%*c%2X;", &cnt);
-	printf("cmd is '%s', cnt = %d\n", addr, cnt);
-	char * response = k3Command(fd, addr, 10, cnt);
-	spaceHexString(response, 10);
-	free(response);
+	char cmdK3[4]="K3;";
+	isK3 = k3Command(fd,cmdK3,50,4);
+
+	if ( (strncmp(isK3,"K3",2) == 0) ) { 
+
+		sscanf(addr, "%*c%2X;", &cnt);
+		printf("cmd is '%s', cnt = %d\n", addr, cnt);
+		char * response = k3Command(fd, addr, 10, cnt);
+		spaceHexString(response, 10);
+		free(response);
+	} else {
+		fprintf(stderr,
+				"Whatever is connected on %s at %d baud is not a K3.\nResponse was: %s\n",
+				device, argspeed, isK3);
+	}
 	close(fd);
 }
 
