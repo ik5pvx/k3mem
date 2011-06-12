@@ -7,6 +7,8 @@
 #include "k3comms.h"
 
 void retrieveAddress(char * addr, char *device, int speed, int argspeed);
+void getBandMemories();
+void getTransverterState();
 
 main(int argc, char *argv[]) {
 
@@ -121,6 +123,11 @@ main(int argc, char *argv[]) {
 
 	if ( (strncmp(isK3,"K3",2) == 0) ) { 
 
+		k3BandMemory bandmemory[24];
+		k3TransverterState transverter[9];
+		getBandMemories();
+		getTransverterState();
+
 		for (i = optind; i < argc; i++) {
 
 			char *curArg = argv[optind++];
@@ -215,3 +222,10 @@ usage(char * progName) {
 	printf("%s [-x ERresponse]\n", progName);
 	exit(1);
 }
+
+void getBandMemories() {
+}
+
+void getTransverterState() {
+}
+
