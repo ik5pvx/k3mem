@@ -9,6 +9,7 @@
 void retrieveAddress(char * addr, char *device, int speed, int argspeed);
 void getBandMemories(int fd);
 void getTransverterState(int fd);
+void BandMemoriesTextToStruct (char *response,int index,int count);
 
 main(int argc, char *argv[]) {
 
@@ -246,6 +247,8 @@ void getBandMemories(int fd) {
 		response = k3Command(fd,cmd,50,139);
 		response[139] = '\0'; /* FIXME: k3Command should do this! */
 		fprintf(stderr,"Response: %s\n",response);
+		/* FIXME: verify checksum */
+		BandMemoriesTextToStruct(response,i*4,4);
 		free (response);
 
 	}
@@ -260,6 +263,8 @@ void getBandMemories(int fd) {
 	response = k3Command(fd,cmd,50,43);
 	response[43] = '\0'; /* FIXME: k3Command should do this! */
 	fprintf(stderr,"Response: %s\n",response);
+	/* FIXME: verify checksum */
+	BandMemoriesTextToStruct(response,i*4,1);
 	free (response);
 		
 	
@@ -269,4 +274,22 @@ void getBandMemories(int fd) {
 void getTransverterState(int fd) {
 }
 
-
+void BandMemoriesTextToStruct (char *response,int index,int count) {
+/* not a good idea
+	char format[139]="ER%6c";
+	int i;
+	for (i=0;i<count;i++){
+		strcat(format,"%32c");
+	}
+	strcat(format,"%2c;");
+	fprintf(stderr,"%s %d\n",format, index);
+*/	
+	int i;
+	char foo[33];
+	for (i=0;i<count;i++) {
+		sscanf(response+8+i*32,"%32c",foo);
+		foo[32]='\0';
+		fprintf(stderr,"%s\n",foo);
+			   
+	}
+}
