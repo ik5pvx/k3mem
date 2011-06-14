@@ -1,0 +1,6 @@
+- add copyright and license notes to the files
+- add some more comments in the code
+- expand options (come to mind: version, verbose, help, ... )
+- remove portions of k3comm that are not needed at all for this project
+- autodetect serial speed
+
