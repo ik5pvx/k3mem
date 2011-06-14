@@ -7,8 +7,8 @@
 #include "k3comms.h"
 
 void retrieveAddress(char * addr, char *device, int speed, int argspeed);
-void getBandMemories();
-void getTransverterState();
+void getBandMemories(int fd);
+void getTransverterState(int fd);
 
 main(int argc, char *argv[]) {
 
@@ -125,8 +125,8 @@ main(int argc, char *argv[]) {
 
 		k3BandMemory bandmemory[25];
 		k3TransverterState transverter[9];
-		getBandMemories();
-		getTransverterState();
+		getBandMemories(fd);
+		getTransverterState(fd);
 
 		for (i = optind; i < argc; i++) {
 
@@ -223,7 +223,7 @@ usage(char * progName) {
 	exit(1);
 }
 
-void getBandMemories() {
+void getBandMemories(int fd) {
 	int i, addr, count, chksum;
 	char cmd[12];
 
@@ -241,6 +241,13 @@ void getBandMemories() {
 		free(cs);
 
 		fprintf(stderr,"Read Band Memory: %s\n",cmd);
+
+		char *response = malloc(139);
+		response = k3Command(fd,cmd,50,139);
+		response[139] = '\0'; /* FIXME: k3Command should do this! */
+		fprintf(stderr,"Response: %s\n",response);
+		free (response);
+
 	}
 	addr = NORMAL_BANDMEMORY_START + BANDMEMORY_SIZE * 24;
 	sprintf(cmd,"ER%04X%02X__;",addr,BANDMEMORY_SIZE);
@@ -249,12 +256,17 @@ void getBandMemories() {
 	strncpy(cmd+2+6, cs, 2);
 	free(cs);
 	fprintf(stderr,"Read Band Memory: %s\n",cmd);
+	char *response = malloc(43);
+	response = k3Command(fd,cmd,50,43);
+	response[43] = '\0'; /* FIXME: k3Command should do this! */
+	fprintf(stderr,"Response: %s\n",response);
+	free (response);
 		
 	
 		
 }
 
-void getTransverterState() {
+void getTransverterState(int fd) {
 }
 
 
