@@ -1,0 +1,9 @@
+Working notes
+=============
+
+Stream:
+		the string of data that we get from the ER command
+
+Record:
+		a fixed-length piece of stream that represents some data
+
