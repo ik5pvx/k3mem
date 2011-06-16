@@ -7,9 +7,10 @@
 #include "k3comms.h"
 
 void retrieveAddress(char * addr, char *device, int speed, int argspeed);
-void getBandMemories(int fd);
+void getBandMemories(int fd,k3BandMemory **bandmemory);
 void getTransverterState(int fd);
-void BandMemoriesTextToStruct (char *response,int index,int count);
+void BandMemoriesStreamtoStruct (char *response,int index,int count,k3BandMemory **bandmemory);
+void decodeBandMemories (k3BandMemory *bandmemory);
 
 main(int argc, char *argv[]) {
 
@@ -124,10 +125,12 @@ main(int argc, char *argv[]) {
 
 	if ( (strncmp(isK3,"K3",2) == 0) ) { 
 
-		k3BandMemory bandmemory[25];
-		k3TransverterState transverter[9];
-		getBandMemories(fd);
+		k3BandMemory *bandmemory[25];
+		k3TransverterState *transverter[9];
+		getBandMemories(fd,bandmemory);
 		getTransverterState(fd);
+
+		decodeBandMemories(bandmemory[10]);
 
 		for (i = optind; i < argc; i++) {
 
@@ -224,7 +227,7 @@ usage(char * progName) {
 	exit(1);
 }
 
-void getBandMemories(int fd) {
+void getBandMemories(int fd,k3BandMemory **bandmemory) {
 	int i, addr, count, chksum;
 	char cmd[12];
 
@@ -248,7 +251,7 @@ void getBandMemories(int fd) {
 		response[139] = '\0'; /* FIXME: k3Command should do this! */
 		fprintf(stderr,"Response: %s\n",response);
 		/* FIXME: verify checksum */
-		BandMemoriesTextToStruct(response,i*4,4);
+		BandMemoriesStreamtoStruct(response,i*4,4,bandmemory);
 		free (response);
 
 	}
@@ -264,7 +267,7 @@ void getBandMemories(int fd) {
 	response[43] = '\0'; /* FIXME: k3Command should do this! */
 	fprintf(stderr,"Response: %s\n",response);
 	/* FIXME: verify checksum */
-	BandMemoriesTextToStruct(response,i*4,1);
+	BandMemoriesStreamtoStruct(response,i*4,1,bandmemory);
 	free (response);
 		
 	
@@ -274,7 +277,7 @@ void getBandMemories(int fd) {
 void getTransverterState(int fd) {
 }
 
-void BandMemoriesTextToStruct (char *response,int index,int count) {
+void BandMemoriesStreamtoStruct (char *response,int index,int count,k3BandMemory **bandmemory) {
 /* not a good idea
 	char format[139]="ER%6c";
 	int i;
@@ -285,11 +288,19 @@ void BandMemoriesTextToStruct (char *response,int index,int count) {
 	fprintf(stderr,"%s %d\n",format, index);
 */	
 	int i;
-	char foo[33];
+	char record[33];
 	for (i=0;i<count;i++) {
-		sscanf(response+8+i*32,"%32c",foo);
-		foo[32]='\0';
-		fprintf(stderr,"%s\n",foo);
-			   
+		sscanf(response+8+i*32,"%32c",record);
+		record[32]='\0';
+		fprintf(stderr,"%s\n",record);
+		bandmemory[index+i] = (k3BandMemory *)malloc(sizeof(k3BandMemory));
+		memcpy(bandmemory[index+i],record,32);
 	}
+}
+
+void decodeBandMemories (k3BandMemory *bandmemory) {
+	int f;
+	f=calcFreq(bandmemory->vfoAfreq,bandmemory->x5);
+	printf ("Gaaah!\n%s\n%d\n",(char *)bandmemory,f); /* this is nuts */
+	
 }
