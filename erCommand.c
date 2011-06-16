@@ -220,7 +220,7 @@ used for print out
 	return freqVal;
 } */
 
-static int calcFreq(k3VfoFreq f, char xvtrFlags) {
+int calcFreq(k3VfoFreq f, char xvtrFlags) {
 	int freqVal;
 
 	if ( f.MHz == 0xFF )

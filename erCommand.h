@@ -14,7 +14,7 @@ static void parseResponse ( char * erCmd );
 static int freqA ( void );
 static int freqB ( void );
 /*static int calcFreq ( char fStr[], char xvtrFlags );*/
-static int calcFreq ( k3VfoFreq f, char xvtrFlags );
+int calcFreq ( k3VfoFreq f, char xvtrFlags );
 static char * getLabel ( void );
 static int bandIndexToFreq ( int bandNum );
 static char decodeChar ( unsigned int c );

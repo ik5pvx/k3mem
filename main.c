@@ -11,6 +11,7 @@ void getBandMemories(int fd,k3BandMemory **bandmemory);
 void getTransverterState(int fd);
 void BandMemoriesStreamtoStruct (char *response,int index,int count,k3BandMemory **bandmemory);
 void decodeBandMemories (k3BandMemory *bandmemory);
+void ascii2bin (char *a, char *b,int sz_a);
 
 main(int argc, char *argv[]) {
 
@@ -288,19 +289,34 @@ void BandMemoriesStreamtoStruct (char *response,int index,int count,k3BandMemory
 	fprintf(stderr,"%s %d\n",format, index);
 */	
 	int i;
-	char record[33];
+	char asciirecord[33];
+	char record[16];
 	for (i=0;i<count;i++) {
-		sscanf(response+8+i*32,"%32c",record);
-		record[32]='\0';
-		fprintf(stderr,"%s\n",record);
+		sscanf(response+8+i*32,"%32c",asciirecord);
+		asciirecord[32]='\0';
+		fprintf(stderr,"%s\n",asciirecord);
 		bandmemory[index+i] = (k3BandMemory *)malloc(sizeof(k3BandMemory));
-		memcpy(bandmemory[index+i],record,32);
+		ascii2bin(asciirecord,record,sizeof(asciirecord));
+		memcpy(bandmemory[index+i],record,16);
 	}
 }
 
 void decodeBandMemories (k3BandMemory *bandmemory) {
 	int f;
-	f=calcFreq(bandmemory->vfoAfreq,bandmemory->x5);
+	f=calcFreq(bandmemory->vfoAfreq,bandmemory->x4);
 	printf ("Gaaah!\n%s\n%d\n",(char *)bandmemory,f); /* this is nuts */
 	
+}
+
+void ascii2bin (char *a, char *b, int sa) {
+	int sb=sa/2;
+/*	printf("HHHH %d %d\nGoo:",sa,sb);*/
+	int i;
+	unsigned int v;
+	for (i=0;i<sb;i++) {
+		sscanf(a+i*2,"%2x",&v);
+/*		printf("%d",v);*/
+		b[i]=v;
+	}
+/*	printf("\n");*/
 }
