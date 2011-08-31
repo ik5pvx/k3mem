@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "k3comms.h"
+
 #define LSB 1
 #define USB 2
 #define CW 3
@@ -15,11 +17,6 @@
 #define RTTY 6
 #define CWREV 7
 #define RTTYREV 9
-
-void getDisplay(int);
-char * k3Command(int, char *, int, int);
-void rate(int);
-void usage(char *);
 
 /*
  * Shorthand:
@@ -48,8 +45,8 @@ int openPort(char *device)
 	fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
 	/* fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY); */
 	if (fd == -1) {
-		char *e;
-		sprintf(e,"openPort: Unable to open %s - ",device);
+		char e[256];
+		snprintf(e, 256,"openPort: Unable to open %s - ",device);
 		perror(e);
 	}
 	else
@@ -109,7 +106,35 @@ void configurePort(int portFd, int speed) {
 	}
 }
 
-int abSwap(int fd) {
+void setMemChannel(int fd, int memNum) {
+	char cmd[8];
+
+	sprintf(cmd, "MC%03d;", memNum);
+	write(fd, cmd, strlen(cmd));
+	usleep(600e3);
+}
+
+char * k3Command(int fd, char * cmd, int msecSleep, int bytesToRead) {
+
+	char *response;
+	int i, n;
+
+	response = malloc(200);
+	write(fd, cmd, strlen(cmd));
+	usleep(msecSleep);
+
+	for (i = 0; i < bytesToRead; i++) {
+		usleep(msecSleep);
+		if ((n = read(fd, response+i, 1)) != 1) {
+			printf("got %d bytes, not 1\n", n);
+		}
+	}
+
+	return response;
+}
+
+#if 0
+static void abSwap(int fd) {
 	char cmd[7];
 
 	sprintf(cmd, "SWT11;");
@@ -117,7 +142,7 @@ int abSwap(int fd) {
 	usleep(100e3);
 }
 
-int getKeyerSpeed(int fd) {
+static int getKeyerSpeed(int fd) {
 	char response[6];
 
 	write(fd, "KS;", 3);
@@ -126,7 +151,7 @@ int getKeyerSpeed(int fd) {
 	return atoi(response+2);
 }
 
-void setKeyerSpeed(int fd, int speed) {
+static void setKeyerSpeed(int fd, int speed) {
 	char cmd[8];
 
 	if (speed < 9 || speed > 50)
@@ -148,7 +173,7 @@ void waitWhileBusy(int fd) {
 	} while (response[0] == '?');
 }
 
-void sendCW(int fd, char *text) {
+static void sendCW(int fd, char *text) {
 	char cwCmd[29];
 	char buffer[25];
 	int len = strlen(text);
@@ -177,57 +202,30 @@ void sendCW(int fd, char *text) {
 	}
 }
 
-void setExtendedMode(int fd) {
+static void setExtendedMode(int fd) {
 	write(fd, "K31;", 4);
 	usleep(100e3);
 }
 
-void setK2ExtendedMode(int fd) {
+static void setK2ExtendedMode(int fd) {
 	write(fd, "K22;", 4);
 	usleep(100e3);
 }
 
-int getFreq(int fd, char vfo) {
+static int getFreq(int fd, char vfo) {
 	char cmd[4], response[15];
+	int bytes, freq;
 
 	sprintf(cmd, "F%c;", vfo);
 	write(fd, cmd, strlen(cmd));
 	usleep(600e3);
-	int bytes = read(fd, response, 14);
+	bytes = read(fd, response, 14);
 	response[14] = '\0';
-	int freq = atoi(response+2);
+	freq = atoi(response+2);
 	return freq;
 }
 
-void setFreq(int fd, char vfo, int hz) {
-	char cmd[15];
-
-	sprintf(cmd, "F%c%011d;", vfo, hz);
-	write(fd, cmd, strlen(cmd));
-	usleep(100e3);
-
-	/* Adjust mode based on frequency. */
-	setMode(fd, determineMode(hz));
-}
-
-void quitCw(int fd) {
-	char cmd[15];
-
-	/* sprintf(cmd, "KY @;"); */
-	sprintf(cmd, "RX;");
-	write(fd, cmd, strlen(cmd));
-	usleep(100e3);
-}
-
-setMemChannel(int fd, int memNum) {
-	char cmd[8];
-
-	sprintf(cmd, "MC%03d;", memNum);
-	write(fd, cmd, strlen(cmd));
-	usleep(600e3);
-}
-
-setMode(int fd, int opMode) {
+static void setMode(int fd, int opMode) {
 	char cmd[8];
 
 	sprintf(cmd, "MD%d;", opMode);
@@ -235,7 +233,7 @@ setMode(int fd, int opMode) {
 	usleep(100e3);
 }
 
-int determineMode(int hz) {
+static int determineMode(int hz) {
 	int mode;
 
 	hz /= 1000;
@@ -290,7 +288,27 @@ int determineMode(int hz) {
 	return mode;
 }
 
-void rate(int fd) {
+static void setFreq(int fd, char vfo, int hz) {
+	char cmd[15];
+
+	sprintf(cmd, "F%c%011d;", vfo, hz);
+	write(fd, cmd, strlen(cmd));
+	usleep(100e3);
+
+	/* Adjust mode based on frequency. */
+	setMode(fd, determineMode(hz));
+}
+
+static void quitCw(int fd) {
+	char cmd[15];
+
+	/* sprintf(cmd, "KY @;"); */
+	sprintf(cmd, "RX;");
+	write(fd, cmd, strlen(cmd));
+	usleep(100e3);
+}
+
+static void rate(int fd) {
 	char cmd[6];
 
 	sprintf(cmd, "SW07;");
@@ -298,7 +316,7 @@ void rate(int fd) {
 	usleep(100e3);
 }
 
-double getPower(int fd) {
+static double getPower(int fd) {
 	char cmd[4], response[8];
 
 	sprintf(cmd, "PC;");
@@ -310,13 +328,11 @@ double getPower(int fd) {
 		return 0.;
 	}
 	response[5] = '\0';
-	double watts = atof(response+2);
-	return watts;
+	return atof(response+2);
 }
 
-void setPower(int fd, float watts) {
+static void setPower(int fd, float watts) {
 	char cmd[9];
-	char level;
 
 	if (watts <= 12)
 		sprintf(cmd, "PC%03d0;", (int) (watts * 10));
@@ -340,7 +356,7 @@ void setPower(int fd, float watts) {
 
 }
 
-int getPreamp(int fd) {
+static int getPreamp(int fd) {
 	char cmd[8], response[8];
 
 	sprintf(cmd, "PA;");
@@ -349,7 +365,7 @@ int getPreamp(int fd) {
 	return response[0] == '1';
 }
 
-void setPreamp(int fd, int on) {
+static void setPreamp(int fd, int on) {
 	char cmd[8];
 
 	if (on < 0 || on > 1)
@@ -360,7 +376,7 @@ void setPreamp(int fd, int on) {
 	usleep(100e3);
 }
 
-int getAttenuator(int fd) {
+static int getAttenuator(int fd) {
 	char cmd[8], response[8];
 
 	sprintf(cmd, "RA;");
@@ -369,7 +385,7 @@ int getAttenuator(int fd) {
 	return response[1] == '1';
 }
 
-void setAttenuator(int fd, int on) {
+static void setAttenuator(int fd, int on) {
 	char cmd[8];
 
 	if (on < 0 || on > 1)
@@ -380,9 +396,8 @@ void setAttenuator(int fd, int on) {
 	usleep(100e3);
 }
 
-void setSplit(int fd, int hz, int hzUp) {
-	char cmd[4], response[14];
-	int i;
+static void setSplit(int fd, int hz, int hzUp) {
+	char cmd[4];
 
 	sprintf(cmd, "FR0;"); // Set SPLIT mode A-recv, B-xmt.
 	write(fd, cmd, strlen(cmd));
@@ -397,7 +412,7 @@ void setSplit(int fd, int hz, int hzUp) {
 	setFreq(fd, 'B', hz + hzUp);
 }
 
-void getDisplay(int fd) {
+static void getDisplay(int fd) {
 	char cmd[4], response[14];
 	int i;
 
@@ -452,7 +467,7 @@ void getDisplay(int fd) {
 		k2display.flashStatus[i] = (response[11] & (1 << i)) != 0;
 }
 
-void tune(int fd) {
+static void tune(int fd) {
 	char cmd[7];
 
 	sprintf(cmd, "SWT19;");
@@ -460,7 +475,6 @@ void tune(int fd) {
 	usleep(100e3);
 }
 
-#if 0
 void usage(char * prog) {
 	/* Aa:Bb:c:fk:Kl:p:Pqs:tu: */
 	printf("Usage: %s\t[-A] get VFO A freq in kHz\n", prog);
@@ -657,23 +671,3 @@ int main(int argc, char *argv[])
 
 }
 #endif
-
-char * k3Command(int fd, char * cmd, int msecSleep, int bytesToRead) {
-
-	char *response;
-	int i, n;
-
-	response = malloc(200);
-	write(fd, cmd, strlen(cmd));
-	usleep(msecSleep);
-
-	for (i = 0; i < bytesToRead; i++) {
-		usleep(msecSleep);
-		if ((n = read(fd, response+i, 1)) != 1) {
-			printf("got %d bytes, not 1\n", n);
-		}
-	}
-
-	return response;
-}
-
