@@ -5,7 +5,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "erCommandInfo.h"
+#include "erCommand.h"
 #include "k3comms.h"
 
 static void usage(char * progName) {
@@ -14,9 +14,6 @@ static void usage(char * progName) {
 	printf("%s [-x ERresponse]\n", progName);
 	exit(1);
 }
-
-#define BASE_ADDR    0x0C00
-#define FREQ_MEM_LEN 0x40
 
 static void memIndexToAddr(int idx, char * cmd) {
 	char *cs = NULL;

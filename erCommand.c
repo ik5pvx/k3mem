@@ -2,49 +2,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "erCommandInfo.h"
 
-#define BASE_ADDR    0x0C00
-#define FREQ_MEM_LEN 0x40
+#include "erCommand.h"
 
 char * erResponse;
 static k3FreqMem fmem;
-
-/*
- *   newk3FreqMemInfo() -  k3FreqMemInfo constructor
- *
- *   Create class and provide public methods.  Nearly all methods
- *   (subroutines) in this file are private (static) and can only be accessed
- *   by the function pointers initialized in the constructor.
- *
- *   The associated header file shows function return values and parameters.
- */
-
-k3FreqMemInfo * newK3FreqMemInfo() {
-
-	k3FreqMemInfo * m;
-
-	m = (k3FreqMemInfo *) malloc(sizeof(k3FreqMemInfo));
-	m->getAnt = &ant;
-	m->getLabel = &getLabel;
-	m->getPlTone = &plTone;
-	m->getVfoAFreq = &freqA;
-	m->getVfoAMode = &modeA;
-	m->getVfoBFreq = &freqB;
-	m->getVfoBMode = &modeB;
-	m->isAttOn = &attOn;
-	m->isModeFm = &isModeFm;
-	m->isNrOn = &nrOn;
-	m->isPreampOn = &preampOn;
-	m->isRxAntOn = &rxAntOn;
-	m->isSplitOn = &splitOn;
-	m->printBrief = &printBrief;
-	m->printRaw = &printRaw;
-	m->printVerbose = &printVerbose;
-	m->setErResponse = &parseResponse;
-
-	return m;
-}
 
 /*
  *                   P u b l i c   M e t h o d s
@@ -60,7 +22,6 @@ k3FreqMemInfo * newK3FreqMemInfo() {
  */
 int checksum(char asciiHex[], int from, int to, char * checksumAscii) {
 
-	char *t;
 	int i, sum;
 	unsigned int b;
 
@@ -166,7 +127,7 @@ static void parseResponse(char * erCmd) {
  * Return the VFO A frequency in Hz.
  */
 
-static int freqA() {
+static int freqA(void) {
 	return calcFreq(fmem.vfoAfreq, fmem.xvtrFlags);
 }
 
@@ -176,7 +137,7 @@ static int freqA() {
  * Return the VFO B frequency in Hz.
  */
 
-static int freqB() {
+static int freqB(void) {
 	return calcFreq(fmem.vfoBfreq, fmem.xvtrFlags);
 }
 
@@ -195,7 +156,7 @@ static int freqB() {
 
 	sscanf(fStr, "%2x%2x%2x%2x%2x", &MHz, &kHzX10, &HzX100, &Hzx10, &Hz);
 
-	if (xvtrFlags & 1) /* 2m only? *//*
+	if (xvtrFlags & 1) // 2m only?
 		switch (MHz) {
 		case 28: MHz = 144; break;
 		case 29: MHz = 145; break;
@@ -239,53 +200,6 @@ int calcFreq(k3VfoFreq f, char xvtrFlags) {
 }
 
 /*
- * getLabel
- *
- * Given an ER substring containing a frequency memory text label, decode
- * that label from K3 encoding to ascii.
- */
-
-static char * getLabel() {
-
-	char * asciiLabel;
-	unsigned int c1, c2, c3, c4, c5;
-
-	asciiLabel = malloc(6);
-
-	if (!strcmp(fmem.label, "FFFFFFFFFF")) {
-		sprintf(asciiLabel, "     ");
-	} else {
-		sscanf(fmem.label, "%2x%2x%2x%2x%2x", &c1, &c2, &c3, &c4, &c5);
-		sprintf(asciiLabel, "%c%c%c%c%c",
-			decodeChar(c1),
-			decodeChar(c2),
-			decodeChar(c3),
-			decodeChar(c4),
-			decodeChar(c5));
-	}
-
-	return asciiLabel;
-}
-
-static int bandIndexToFreq(int bandNum) {
-
-	switch (bandNum) {
-	case 0: return 160;
-	case 1: return 80;
-	case 2: return 60;
-	case 3: return 40;
-	case 4: return 30;
-	case 5: return 20;
-	case 6: return 17;
-	case 7: return 15;
-	case 8: return 12;
-	case 9: return 10;
-	case 10: return 6;
-	default: return -1;
-	}
-}
-
-/*
  * decodeChar
  *
  * Convert a K3 encoded character to ascii.  The K3 encodes alphanumerics and
@@ -314,25 +228,63 @@ static char decodeChar(unsigned int c) {
 }
 
 /*
- * modeA
+ * getLabel
  *
- * Return a string describing the VFO A mode.
+ * Given an ER substring containing a frequency memory text label, decode
+ * that label from K3 encoding to ascii.
  */
 
-static char * modeA() {
-	return mode(fmem.vfoAmode, fmem.vfoFlags2,
-		fmem.vfoFlags7, fmem.fmInfo, fmem.dataMode);
+static char * getLabel(void) {
+
+	char * asciiLabel;
+	unsigned int c1, c2, c3, c4, c5;
+
+	asciiLabel = malloc(6);
+
+	if (!strcmp(fmem.label, "FFFFFFFFFF")) {
+		sprintf(asciiLabel, "     ");
+	} else {
+		sscanf(fmem.label, "%2x%2x%2x%2x%2x", &c1, &c2, &c3, &c4, &c5);
+		sprintf(asciiLabel, "%c%c%c%c%c",
+			decodeChar(c1),
+			decodeChar(c2),
+			decodeChar(c3),
+			decodeChar(c4),
+			decodeChar(c5));
+	}
+
+	return asciiLabel;
 }
 
 /*
- * modeB
- *
- * Return a string describing the VFO B mode.
- */
+static int bandIndexToFreq(int bandNum) {
 
-static char * modeB() {
-	return mode(fmem.vfoBmode, fmem.vfoFlags2,
-		fmem.vfoFlags7, fmem.fmInfo, fmem.dataMode);
+	switch (bandNum) {
+	case 0: return 160;
+	case 1: return 80;
+	case 2: return 60;
+	case 3: return 40;
+	case 4: return 30;
+	case 5: return 20;
+	case 6: return 17;
+	case 7: return 15;
+	case 8: return 12;
+	case 9: return 10;
+	case 10: return 6;
+	default: return -1;
+	}
+}
+*/
+
+static unsigned char stox(const char byte) {
+
+	int c;
+
+	sscanf(&byte, "%x", &c);
+	/*
+	printf("converted %c to %d\n", byte, c);
+	*/
+	return c;
 }
 
 /*
@@ -342,7 +294,7 @@ static char * modeB() {
  * operational mode - CW, LSB, etc., - associated with a stored frequency.
  */
 
-static char * mode(char modeChar, char altChar, char flags7, char fmInfo,
+static const char * mode(char modeChar, char altChar, char flags7, char fmInfo,
 	char dataMode) {
 
 	int modeByte, revCw, revMode;
@@ -391,16 +343,34 @@ static char * mode(char modeChar, char altChar, char flags7, char fmInfo,
 }
 
 /*
+ * modeA
+ *
+ * Return a string describing the VFO A mode.
+ */
+
+static const char * modeA(void) {
+	return mode(fmem.vfoAmode, fmem.vfoFlags2,
+		fmem.vfoFlags7, fmem.fmInfo, fmem.dataMode);
+}
+
+/*
+ * modeB
+ *
+ * Return a string describing the VFO B mode.
+ */
+
+static const char * modeB(void) {
+	return mode(fmem.vfoBmode, fmem.vfoFlags2,
+		fmem.vfoFlags7, fmem.fmInfo, fmem.dataMode);
+}
+
+/*
  * repeaterOffset
  *
  * Returns the offset in Hz as encoded in a K3 frequency memory.
  */
 
-static int repeaterOffset() {
-	return repeaterOffsetStr(fmem.rptrOffset);
-}
-
-static int repeaterOffsetStr(char * rptrOffset) {
+static int repeaterOffsetStr(const char * rptrOffset) {
 
 	int hz;
 
@@ -408,30 +378,34 @@ static int repeaterOffsetStr(char * rptrOffset) {
 	return 20 * hz;
 }
 
-static int isModeCw()   { return stox(fmem.vfoAmode) == 0; } 
-static int isModeLsb()  { return stox(fmem.vfoAmode) == 1; } 
-static int isModeUsb()  { return stox(fmem.vfoAmode) == 2; } 
-static int isModeData() { return stox(fmem.vfoAmode) == 3; } 
-static int isModeAm()   { return stox(fmem.vfoAmode) == 4; } 
-static int isModeFm()   { return stox(fmem.vfoAmode) == 5; }
+static int repeaterOffset(void) {
+	return repeaterOffsetStr(fmem.rptrOffset);
+}
 
-static int modeAlt()    { return stox(fmem.vfoFlags1) & 0x4; } 
+/*
+static int isModeCw(void)   { return stox(fmem.vfoAmode) == 0; } 
+static int isModeLsb(void)  { return stox(fmem.vfoAmode) == 1; } 
+static int isModeUsb(void)  { return stox(fmem.vfoAmode) == 2; } 
+static int isModeData(void) { return stox(fmem.vfoAmode) == 3; } 
+static int isModeAm(void)   { return stox(fmem.vfoAmode) == 4; } 
+*/
+static int isModeFm(void)   { return stox(fmem.vfoAmode) == 5; }
+/*
+static int modeAlt(void)    { return stox(fmem.vfoFlags1) & 0x4; } 
+*/
+static int nbOn(void)       { return stox(fmem.vfoFlags2) & 0x2; } 
+static int ant(void)        { return (stox(fmem.vfoFlags2) & 0x8) ? 2 : 1; }
 
-static int nbOn()       { return stox(fmem.vfoFlags2) & 0x2; } 
-static int ant()        { return (stox(fmem.vfoFlags2) & 0x8) ? 2 : 1; }
+static int preampOn(void)   { return stox(fmem.vfoFlags3) & 0x8; }
 
-static int preampOn()   { return stox(fmem.vfoFlags3) & 0x8; }
+static int attOn(void)      { return stox(fmem.vfoFlags4) & 0x1; }
+static int rxAntOn(void)    { return stox(fmem.vfoFlags4) & 0x8; }
 
-static int attOn()      { return stox(fmem.vfoFlags4) & 0x1; }
-static int rxAntOn()    { return stox(fmem.vfoFlags4) & 0x8; }
+static int splitOn(void)    { return stox(fmem.vfoFlags5) & 0x1; } 
 
-static int splitOn()    { return stox(fmem.vfoFlags5) & 0x1; } 
+static int nrOn(void)       { return stox(fmem.vfoFlags6) & 0x4; } 
 
-static int nrOn()       { return stox(fmem.vfoFlags6) & 0x4; } 
-
-static float plTone()   { return plToneStr(fmem.plHex); }
-
-static float plToneStr(char * plHex) {
+static float plToneStr(const char * plHex) {
 
 	float hz;
 	int hexHz;
@@ -496,18 +470,9 @@ static float plToneStr(char * plHex) {
 	return hz;
 }
 
-static unsigned char stox(unsigned char byte) {
+static float plTone(void)   { return plToneStr(fmem.plHex); }
 
-	int c;
-
-	sscanf(&byte, "%x", &c);
-	/*
-	printf("converted %c to %d\n", byte, c);
-	*/
-	return c;
-}
-
-static void printBrief() {
+static void printBrief(void) {
 
 	char *lbl;
 	int fa, fb;
@@ -519,6 +484,8 @@ static void printBrief() {
 		/*printf("- / -   ");*/
 		printf("(empty)\n");
 	else {
+		float pl;
+
 		lbl = getLabel();
 		printf("%6s:", lbl);
 		free(lbl);
@@ -527,7 +494,7 @@ static void printBrief() {
 			printf("%23s","");
 		else
 			printf(" / %10d%10s", fb, modeB());
-		float pl = plTone();
+		pl = plTone();
 		if (isModeFm() && pl > 0)
 			printf("    PL %.1f Hz", pl);
 		printf(".\n"); /* FIXME: try some memories with the pl tone and 
@@ -535,7 +502,7 @@ static void printBrief() {
 	}
 }
 
-static void printRaw() {
+static void printRaw(void) {
 
 /*	if (0) {
 		printf("Response:\n\n");
@@ -565,9 +532,9 @@ static void printRaw() {
 
 }
 
-static void printVerbose() {
-
+static void printVerbose(void) {
 	char *lbl;
+	float pl;
 
 	/* sscanf(response, "ER%136s;", wtf); */
 
@@ -594,7 +561,7 @@ static void printVerbose() {
 		printf("VFO B: \n");
 	else
 		printf("VFO B: %d / %s\n", freqB(), modeB());
-	float pl = plTone();
+	pl = plTone();
 	if (isModeFm() && pl > 0) {
 		printf("PL tone:         %.1f Hz\n", pl);
 		printf("Repeater offset: %i Hz\n", repeaterOffset());
@@ -611,4 +578,40 @@ static void printVerbose() {
 	printf ("Checksum: "); 
 	checksum(wtf);
 	*/
+}
+
+/*
+ *   newk3FreqMemInfo() -  k3FreqMemInfo constructor
+ *
+ *   Create class and provide public methods.  Nearly all methods
+ *   (subroutines) in this file are private (static) and can only be accessed
+ *   by the function pointers initialized in the constructor.
+ *
+ *   The associated header file shows function return values and parameters.
+ */
+
+k3FreqMemInfo * newK3FreqMemInfo() {
+
+	k3FreqMemInfo * m;
+
+	m = (k3FreqMemInfo *) malloc(sizeof(k3FreqMemInfo));
+	m->getAnt = &ant;
+	m->getLabel = &getLabel;
+	m->getPlTone = &plTone;
+	m->getVfoAFreq = &freqA;
+	m->getVfoAMode = &modeA;
+	m->getVfoBFreq = &freqB;
+	m->getVfoBMode = &modeB;
+	m->isAttOn = &attOn;
+	m->isModeFm = &isModeFm;
+	m->isNrOn = &nrOn;
+	m->isPreampOn = &preampOn;
+	m->isRxAntOn = &rxAntOn;
+	m->isSplitOn = &splitOn;
+	m->printBrief = &printBrief;
+	m->printRaw = &printRaw;
+	m->printVerbose = &printVerbose;
+	m->setErResponse = &parseResponse;
+
+	return m;
 }

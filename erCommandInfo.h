@@ -1,3 +1,6 @@
+#ifndef __ER_COMMAND_INFO_H__
+#define __ER_COMMAND_INFO_H__
+
 /*
  * Structures and constant related to K3 memory access.
  *
@@ -44,24 +47,24 @@ typedef struct {
 
 typedef struct {
 
-	char * (*getLabel)();
-	char * (*getVfoAMode)();
-	char * (*getVfoBMode)();
-	float (*getPlTone)();
-	int (*getAnt)();
-	int (*getRepeaterOffset)();
-	int (*getVfoAFreq)();
-	int (*getVfoBFreq)();
-	int (*isAttOn)();
-	int (*isModeFm)();
-	int (*isNrOn)();
-	int (*isPreampOn)();
-	int (*isSplitOn)();
-	int (*isRxAntOn)();
+	char * (*getLabel)(void);
+	const char * (*getVfoAMode)(void);
+	const char * (*getVfoBMode)(void);
+	float (*getPlTone)(void);
+	int (*getAnt)(void);
+	int (*getRepeaterOffset)(void);
+	int (*getVfoAFreq)(void);
+	int (*getVfoBFreq)(void);
+	int (*isAttOn)(void);
+	int (*isModeFm)(void);
+	int (*isNrOn)(void);
+	int (*isPreampOn)(void);
+	int (*isSplitOn)(void);
+	int (*isRxAntOn)(void);
 	void (*setErResponse)(char *);
-	void (*printBrief)();
-	void (*printRaw)();
-	void (*printVerbose)();
+	void (*printBrief)(void);
+	void (*printRaw)(void);
+	void (*printVerbose)(void);
 
 } k3FreqMemInfo;
 
@@ -114,5 +117,4 @@ enum BandIndex {
 	xv1, xv2, xv3, xv4, xv5, xv6, xv7, xv8, xv9
 };
 
-#include "erCommand.h"
-
+#endif /* __ER_COMMAND_INFO_H__ */
