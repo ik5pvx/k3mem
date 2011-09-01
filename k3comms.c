@@ -91,7 +91,6 @@ static int configure_ser(int fd, int speed)
 int open_ser(char *device, int speed)
 {
 	int fd;
-
 	fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
 	if (fd < 0)
 		return fd;
@@ -123,13 +122,14 @@ char *k3Command(int fd, char *cmd, int msecSleep, int bytesToRead)
 
 	response = malloc(200);
 	write(fd, cmd, strlen(cmd));
-	usleep(msecSleep);
+	usleep(msecSleep*1000);
 
 	for (i = 0; i < bytesToRead; i++) {
-		usleep(msecSleep);
-		if ((n = read(fd, response + i, 1)) != 1) {
-			printf("got %d bytes, not 1\n", n);
-		}
+		do { 
+			n = read(fd, response + i, 1); 
+			usleep(100); 
+			/* FIXME: intercept ";" and exit the loop */
+		} while (n != 1);
 	}
 
 	return response;
