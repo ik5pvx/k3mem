@@ -1,17 +1,41 @@
 K3MEM
 =====
 
-[put some description of the project here]
+A simple tool to read and write the memories of an Elecraft K3 transceiver.
 
-Authors:
+Disclaimer
+==========
 
-Mike Markowski, ab3ap
-Pierfrancesco Caci, ik5pvx
+This program is not endorsed by Elecraft. We analyzed the communications and 
+got an educated guess at how to use the direct EEPROM access commands.
 
-Contributors:
+While we have not damaged our transceivers so far by developing this program, 
+we can't guarantee that we don't end up writing in the wrong part of the EEPROM
+and make a brick of the transceiver. 
 
-Fabio M. Di Nitto
+Please also note that this is NOT an attempt at reverse engineering the whole 
+firmware of the radio, nor an attempt at producing an open source firmware for it.
 
+Authors
+=======
+
+Mike Markowski, ab3ap       - coding, protocol analysis, etc...
+Pierfrancesco Caci, ik5pvx  - protocol analysis, testing, coding, git setup
+
+Contributors
+============
+
+Fabio M. Di Nitto           - code cleanup and sane programming ;-)
+
+Documentation
+=============
+
+A few sparse notes under docs/
+
+- k3-er.html : what we have figured out so far of the communication protocol
+- allMem     : debug output from the official windows program
+
+The other files are random notes and tests of little general value.
 
 
 Working notes
@@ -22,4 +46,5 @@ Stream:
 
 Record:
 		a fixed-length piece of stream that represents some data
+
 
