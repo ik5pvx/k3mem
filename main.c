@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include "erCommand.h"
 #include "k3comms.h"
@@ -172,13 +173,14 @@ static void decodeBandMemories (k3BandMemory *bandmemory) {
 int main(int argc, char *argv[]) {
 	char c, cmd[9];
 	char cmdK3[4]="K3;";
-	char *device = NULL, *response = NULL, *isK3 = NULL;
+	char *response = NULL, *isK3 = NULL;
+	char device[PATH_MAX+1]; /* maximum path length supported by the OS, from limits.h, plus \0 */
 
 	int gotBrief = 0,         /* -b */
 	    gotMemChoice = 0,     /* -m */
 	    gotMemIndex = 0,      /* -i */
 	    gotRaw = 0;           /* -r */
-	int i, l, idx;
+	int i, idx;
 	int longval;
 	struct option long_options[] = {
 		{"address",required_argument,0,'a'},
@@ -198,8 +200,7 @@ int main(int argc, char *argv[]) {
 	int fd;
 	k3FreqMemInfo *memInfo;
 
-	device = malloc(256);
-	strcpy(device, "/dev/ttyS0");
+	strncpy(device, "/dev/ttyS0", PATH_MAX);
 
 	memInfo = newK3FreqMemInfo();
 
@@ -216,14 +217,7 @@ int main(int argc, char *argv[]) {
 			gotBrief = 1;
 			break;
 		case 'd': /* serial device specified */
-			l=strlen(optarg);
-			if (l<255) {
-				strncpy(device,optarg,l);
-				device[l]='\0';
-			} else {
-				fprintf(stderr,"Device name too long:\n%s\n",optarg);
-				exit (1);
-			}
+			strncpy(device,optarg,PATH_MAX);
 			break;
 		case 'i': /* verbose listing */
 			gotMemIndex = 1;
@@ -335,6 +329,5 @@ int main(int argc, char *argv[]) {
 				device, argspeed, isK3);
 	}
 	close(fd);
-	free(device);
 	exit(0);
 }
