@@ -30,6 +30,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <limits.h>
+#include <errno.h>
 
 #include "erCommand.h"
 #include "k3comms.h"
@@ -40,6 +41,49 @@ static void usage(char * progName) {
 	printf("%s [-x ERresponse] : translate a raw response \n", progName);
 	printf("%s [-m channel]    : set a memory channel on the radio (like pressing MR) \n", progName);
 	exit(1);
+}
+
+static int is_k3(int fd, char *device, int speed)
+{
+	char *response = NULL;
+	char cmdK3[4] = "K3;\0";
+	int err = 0;
+
+	response = k3Command(fd, cmdK3, 50, sizeof(cmdK3));
+	if (!response) {
+		fprintf(stderr, "Unable to determine if device is K3: %s\n",
+			strerror(errno));
+		return -1;
+	}
+
+	if (strncmp(response, "K3", 2)) {
+		fprintf(stderr, "Whatever is connected on %s"
+				"at %d baud is not a K3.\n"
+				"Response was: %s\n",
+				device, speed, response);
+		err = -1;
+	}
+	free(response);
+	return err;
+}
+
+static int openk3(char *device, int speed)
+{
+	int fd;
+
+	fd = open_ser(device, speed);
+	if (fd < 0) {
+		fprintf(stderr, "Unable to open serial device: %s\n",
+			strerror(errno));
+		return -1;	
+	}
+
+	if (is_k3(fd, device, speed)) {
+		close(fd);
+		fd = -1;
+	}
+
+	return fd;
 }
 
 static void memIndexToAddr(int idx, char * cmd) {
@@ -56,26 +100,18 @@ static void memIndexToAddr(int idx, char * cmd) {
 }
 
 static void retrieveAddress(char * addr,char *device,int speed, int argspeed) {
-	char *isK3;
 	int cnt, fd;
-	char cmdK3[4]="K3;";
+	char *response = NULL;
 
-	fd = open_ser(device, speed);
-	isK3 = k3Command(fd,cmdK3,50,4);
+	fd = openk3(device, speed);
+	if (fd < 0)
+		exit(1);
 
-	if ( (strncmp(isK3,"K3",2) == 0) ) {
-		char *response = NULL;
-
-		sscanf(addr, "%*c%2X;", &cnt);
-		printf("cmd is '%s', cnt = %d\n", addr, cnt);
-		response = k3Command(fd, addr, 10, cnt);
-		spaceHexString(response, 10);
-		free(response);
-	} else {
-		fprintf(stderr,
-				"Whatever is connected on %s at %d baud is not a K3.\nResponse was: %s\n",
-				device, argspeed, isK3);
-	}
+	sscanf(addr, "%*c%2X;", &cnt);
+	printf("cmd is '%s', cnt = %d\n", addr, cnt);
+	response = k3Command(fd, addr, 10, cnt);
+	spaceHexString(response, 10);
+	free(response);
 	close(fd);
 }
 
@@ -172,8 +208,7 @@ static void decodeBandMemories (k3BandMemory *bandmemory) {
 
 int main(int argc, char *argv[]) {
 	char c, cmd[9];
-	char cmdK3[4]="K3;";
-	char *response = NULL, *isK3 = NULL;
+	char *response = NULL;
 	char device[PATH_MAX+1]; /* maximum path length supported by the OS, from limits.h, plus \0 */
 
 	int gotBrief = 0,         /* -b */
@@ -199,6 +234,7 @@ int main(int argc, char *argv[]) {
 	int argspeed=0;
 	int fd;
 	k3FreqMemInfo *memInfo;
+	k3BandMemory *bandmemory[25];
 
 	strncpy(device, "/dev/ttyS0", PATH_MAX);
 
@@ -272,62 +308,54 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	fd = open_ser(device, speed);
+	fd = openk3(device, speed);
+	if (fd < 0)
+		exit(1);
 
-	isK3 = k3Command(fd,cmdK3,50,4);
+	getBandMemories(fd,bandmemory);
+	getTransverterState(fd);
 
-	if ( (strncmp(isK3,"K3",2) == 0) ) { 
+	decodeBandMemories(bandmemory[10]);
 
-		k3BandMemory *bandmemory[25];
-		getBandMemories(fd,bandmemory);
-		getTransverterState(fd);
+	for (i = optind; i < argc; i++) {
 
-		decodeBandMemories(bandmemory[10]);
+		char *curArg = argv[optind++];
+		char *dashIndex = strchr(curArg, '-');
+		int loIndex, hiIndex;
 
-		for (i = optind; i < argc; i++) {
+		if (dashIndex != NULL)
+			sscanf(curArg, "%d-%d", &loIndex, &hiIndex);
+		else
+			loIndex = hiIndex = atoi(curArg);
 
-			char *curArg = argv[optind++];
-			char *dashIndex = strchr(curArg, '-');
-			int loIndex, hiIndex;
+		for (idx = loIndex; idx <= hiIndex; idx++) {
 
-			if (dashIndex != NULL)
-				sscanf(curArg, "%d-%d", &loIndex, &hiIndex);
-			else
-				loIndex = hiIndex = atoi(curArg);
+			if (idx < 0 || idx > 199)
+				usage(argv[0]);
 
-			for (idx = loIndex; idx <= hiIndex; idx++) {
+			if (gotMemChoice) {
+				setMemChannel(fd, idx);
+				exit(0); /* More than 1 makes no sense. */
+			}
 
-				if (idx < 0 || idx > 199)
-					usage(argv[0]);
+			memIndexToAddr(idx, cmd); /* Calculate eeprom address of idx. */
+			response = k3Command(fd, cmd, 10, 139); /* Send ER cmd. */
+			memInfo->setErResponse(response);
+			free(response);
 
-				if (gotMemChoice) {
-					setMemChannel(fd, idx);
-					exit(0); /* More than 1 makes no sense. */
-				}
-
-				memIndexToAddr(idx, cmd); /* Calculate eeprom address of idx. */
-				response = k3Command(fd, cmd, 10, 139); /* Send ER cmd. */
-				memInfo->setErResponse(response);
-				free(response);
-
-				if (gotBrief) {
-					printf("%3d: ", idx);
-					memInfo->printBrief();
-				}
-				if (gotRaw) {
-					printf("%3d: ", idx);
-					memInfo->printRaw();
-				}
-				if (gotMemIndex) {
-					printf("\nMemory channel %d\n", idx);
-					memInfo->printVerbose();
-				}
+			if (gotBrief) {
+				printf("%3d: ", idx);
+				memInfo->printBrief();
+			}
+			if (gotRaw) {
+				printf("%3d: ", idx);
+				memInfo->printRaw();
+			}
+			if (gotMemIndex) {
+				printf("\nMemory channel %d\n", idx);
+				memInfo->printVerbose();
 			}
 		}
-	} else {
-		fprintf(stderr,
-				"Whatever is connected on %s at %d baud is not a K3.\nResponse was: %s\n",
-				device, argspeed, isK3);
 	}
 	close(fd);
 	exit(0);
