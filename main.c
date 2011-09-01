@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc <= 1) usage(argv[0]);
 	while (( c = getopt_long(
-				 argc, argv, "a:bd:imrs:vx", long_options, &option_idx)
+				 argc, argv, "a:bd:imrs:vx:", long_options, &option_idx)
 			   ) != -1) {
 		switch (c) {
 		case 'a': /* translate mem channel to memory address */
@@ -250,8 +250,10 @@ int main(int argc, char *argv[]) {
 			}
 			break;
 		case 'x': /* translate a raw response */
+			printf("%s\n",optarg);
 			memInfo->setErResponse(optarg);
 			memInfo->printVerbose();
+			exit(0);
 			break;
 		case 0:   /* this handles longoptions with no short counterpart */
 			switch (longval) {
