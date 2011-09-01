@@ -38,7 +38,7 @@ static void usage(char * progName) {
 	printf("Usage:\n%s [-s speed] [-d device] [-(i|r|b) K3memIndex] : read memories from radio \n", progName);
 	printf("%s [-a K3memIndex] : translate memory channel number to address \n", progName);
 	printf("%s [-x ERresponse] : translate a raw response \n", progName);
-	printf("%s [-m channel]    : set a memory channel on the radio (like pressing MR)", progName);
+	printf("%s [-m channel]    : set a memory channel on the radio (like pressing MR) \n", progName);
 	exit(1);
 }
 
@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc <= 1) usage(argv[0]);
 	while (( c = getopt_long(
-				 argc, argv, "a:bd:imrs:", long_options, &option_idx)
+				 argc, argv, "a:bd:imrs:vx", long_options, &option_idx)
 			   ) != -1) {
 		switch (c) {
 		case 'a': /* translate mem channel to memory address */
