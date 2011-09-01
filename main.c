@@ -60,8 +60,7 @@ static void retrieveAddress(char * addr,char *device,int speed, int argspeed) {
 	int cnt, fd;
 	char cmdK3[4]="K3;";
 
-	fd = openPort(device);
-	configurePort(fd,speed);
+	fd = open_ser(device, speed);
 	isK3 = k3Command(fd,cmdK3,50,4);
 
 	if ( (strncmp(isK3,"K3",2) == 0) ) {
@@ -273,8 +272,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	fd = openPort(device);
-	configurePort(fd,speed);
+	fd = open_ser(device, speed);
 
 	isK3 = k3Command(fd,cmdK3,50,4);
 

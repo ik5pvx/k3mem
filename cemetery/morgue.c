@@ -123,6 +123,34 @@ static void printRaw(void) {
 
 /*  (removed from k3comms.c) */
 
+#define LSB 1
+#define USB 2
+#define CW 3
+#define FM 4
+#define AM 5
+#define RTTY 6
+#define CWREV 7
+#define RTTYREV 9
+
+/*
+ * Shorthand:
+ * ( KN
+ * + AR
+ * = BT
+ * % AS
+ * * SK
+ *
+ * < into test mode
+ * > out of test mode
+ * @ terminate cw send in progress
+ */
+
+struct displayVals {
+	char digit[8];
+	short decimalPoint[8];
+	short annunciator[8];
+	short flashStatus[8];
+} k2display;
 
 static int getKeyerSpeed(int fd) {
 	char response[6];

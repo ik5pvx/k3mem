@@ -23,79 +23,38 @@
  * along with k3mem.  If not, see <http://www.gnu.org/licenses/>.
  * ----------------------------------------------------------------------------
  */
-#include <stdio.h>	/*Standard input/output definitions*/
-#include <string.h>	/*String function definitions*/
-#include <unistd.h>	/*Unix standard function definitions*/
-#include <fcntl.h>	/*File control definitions*/
-#include <errno.h>	/*Error number definitions*/
-#include <termios.h>	/*POSIX terminal control definitions*/
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <termios.h>
 #include <stdlib.h>
-#include <math.h>
 
 #include "k3comms.h"
 
-#define LSB 1
-#define USB 2
-#define CW 3
-#define FM 4
-#define AM 5
-#define RTTY 6
-#define CWREV 7
-#define RTTYREV 9
-
-/*
- * Shorthand:
- * ( KN
- * + AR
- * = BT
- * % AS
- * * SK
- *
- * < into test mode
- * > out of test mode
- * @ terminate cw send in progress
- */
-
-struct displayVals {
-	char digit[8];
-	short decimalPoint[8];
-	short annunciator[8];
-	short flashStatus[8];
-} k2display;
-
-int openPort(char *device)
+static int configure_ser(int fd, int speed)
 {
-	int fd;
-
-	fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
-	/* fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY); */
-	if (fd == -1) {
-		char e[256];
-		snprintf(e, 256,"openPort: Unable to open %s - ",device);
-		perror(e);
-	}
-	else
-		fcntl(fd, F_SETFL, 0);
-	return(fd);
-}
-
-void configurePort(int portFd, int speed) {
-	/*Configure port*/
 	struct termios options;
 
-	/*Get the current options for the port*/
-	tcgetattr(portFd, &options);
+	/* probe current serial options */
+	if (tcgetattr(fd, &options) < 0)
+		return -1;
 
-	/*Set the Baud rates to 38400*/
-	cfsetispeed(&options, speed);
-	cfsetospeed(&options, speed);
+	/* set I/O speed */
+	if (cfsetispeed(&options, speed) < 0)
+		return -1;
 
-	/*Enable received and set local mode*/
+	if (cfsetospeed(&options, speed) < 0)
+		return -1;
+
+	/* Enable received and set local mode */
 	options.c_cflag |= (CLOCAL | CREAD);
 
-	/*Set data bits*/
-	options.c_cflag &= ~CSIZE;	/*Mask the character size bits*/
-	options.c_cflag |= CS8;		/*Select 8 data bits*/
+	/* Set data bits */
+	options.c_cflag &= ~CSIZE;	/*Mask the character size bits */
+	options.c_cflag |= CS8;	/*Select 8 data bits */
 
 #if 0
 	/* K3 should have -1- stop bit set, K2 uses 2 */
@@ -110,28 +69,45 @@ void configurePort(int portFd, int speed) {
 	options.c_cflag &= ~CRTSCTS;
 	options.c_iflag &= ~IXON;
 
-	/*Set RAW input*/
+	/* Set RAW input */
 	options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 
-	/*Set Raw output*/
+	/* Set Raw output */
 	options.c_oflag &= ~OPOST;
 
-	/*Set timeout to 10 sec*/
+	/* Set timeout to 10 sec */
 	options.c_cc[VTIME] = 6;
 #if 0
 	options.c_cc[VMIN] = 0;
 #endif
 
 	/* Flush serial port. */
-	tcflush(portFd, TCIFLUSH);
+	if (tcflush(fd, TCIFLUSH) < 0)
+		return -1;
 
-	/*Set new options for port*/
-	if (tcsetattr(portFd, TCSANOW, &options) == -1) {
-		perror("Couldn't change serial port settings.  Quitting.\n");
-	}
+	return tcsetattr(fd, TCSANOW, &options);
 }
 
-void setMemChannel(int fd, int memNum) {
+int open_ser(char *device, int speed)
+{
+	int fd;
+
+	fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
+	if (fd < 0)
+		return fd;
+
+	if (configure_ser(fd, speed) < 0) {
+		close(fd);
+		fd = -1;
+		goto out;
+	}
+
+out:
+	return (fd);
+}
+
+void setMemChannel(int fd, int memNum)
+{
 	char cmd[8];
 
 	sprintf(cmd, "MC%03d;", memNum);
@@ -139,7 +115,8 @@ void setMemChannel(int fd, int memNum) {
 	usleep(600e3);
 }
 
-char * k3Command(int fd, char * cmd, int msecSleep, int bytesToRead) {
+char *k3Command(int fd, char *cmd, int msecSleep, int bytesToRead)
+{
 
 	char *response;
 	int i, n;
@@ -150,12 +127,10 @@ char * k3Command(int fd, char * cmd, int msecSleep, int bytesToRead) {
 
 	for (i = 0; i < bytesToRead; i++) {
 		usleep(msecSleep);
-		if ((n = read(fd, response+i, 1)) != 1) {
+		if ((n = read(fd, response + i, 1)) != 1) {
 			printf("got %d bytes, not 1\n", n);
 		}
 	}
 
 	return response;
 }
-
-

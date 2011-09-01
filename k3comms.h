@@ -23,12 +23,12 @@
  * along with k3mem.  If not, see <http://www.gnu.org/licenses/>.
  * ----------------------------------------------------------------------------
  */
+
 #ifndef __K3COMMS_H__
 #define __K3COMMS_H__
 
-int openPort ( char *device );
-void configurePort ( int portFd, int speed );
-void setMemChannel ( int fd, int memNum );
-char * k3Command ( int fd, char * cmd, int msecSleep, int bytesToRead );
+int open_ser(char *device, int speed);
+void setMemChannel(int fd, int memNum);
+char *k3Command(int fd, char *cmd, int msecSleep, int bytesToRead);
 
 #endif /* __K3COMMS_H__ */
