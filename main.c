@@ -35,9 +35,10 @@
 #include "k3comms.h"
 
 static void usage(char * progName) {
-	printf("Usage:\n%s [-(i|r|b) K3memIndex]\n", progName);
-	printf("%s [-a K3memIndex]\n", progName);
-	printf("%s [-x ERresponse]\n", progName);
+	printf("Usage:\n%s [-s speed] [-d device] [-(i|r|b) K3memIndex] : read memories from radio \n", progName);
+	printf("%s [-a K3memIndex] : translate memory channel number to address \n", progName);
+	printf("%s [-x ERresponse] : translate a raw response \n", progName);
+	printf("%s [-m channel]    : set a memory channel on the radio (like pressing MR)", progName);
 	exit(1);
 }
 
