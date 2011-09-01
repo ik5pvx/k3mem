@@ -334,7 +334,12 @@ int main(int argc, char *argv[]) {
 				usage(argv[0]);
 
 			if (gotMemChoice) {
-				setMemChannel(fd, idx);
+				if (setMemChannel(fd, idx)) {
+					fprintf(stderr,
+						"Unable to set mem chan"
+						"Error: %s\n", strerror(errno));
+					exit(1);
+				}
 				exit(0); /* More than 1 makes no sense. */
 			}
 

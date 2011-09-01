@@ -105,13 +105,26 @@ out:
 	return (fd);
 }
 
-void setMemChannel(int fd, int memNum)
+int setMemChannel(int fd, int memNum)
 {
 	char cmd[8];
+	int err = 0;
+	size_t cmdlen = 0;
+	ssize_t writelen = 0;
 
 	sprintf(cmd, "MC%03d;", memNum);
-	write(fd, cmd, strlen(cmd));
+	cmdlen = strlen(cmd);
+	writelen = write(fd, cmd, cmdlen);
+	if (writelen != cmdlen)
+		err = -1;
+
+	/*
+	 * do we really need this?
+	 * k3mem exits right away and nothing happens after this
+	 */
 	usleep(600e3);
+
+	return err;
 }
 
 char *k3Command(int fd, char *cmd, int msecSleep, int bytesToRead)
