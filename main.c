@@ -103,7 +103,8 @@ static void memIndexToAddr(int idx, char * cmd) {
 	strncpy(cmd+2+6, cs, 2);
 }
 
-static void retrieveAddress(char * addr,char *device,int speed, int argspeed) {
+/* no idea what the purpose of this function would be */
+/* static void retrieveAddress(char * addr,char *device,int speed, int argspeed) {
 	int cnt, fd;
 	char *response = NULL;
 
@@ -117,6 +118,18 @@ static void retrieveAddress(char * addr,char *device,int speed, int argspeed) {
 	spaceHexString(response, 10);
 	free(response);
 	close(fd);
+}
+*/
+
+static void getMemoryAddress(char *addr,char *progName) {
+	int a;
+	a=atoi(addr);
+	if (a >= 0 && a <=199) {
+		printf("Memory channel %d corresponds to address %s\n",a,"foo");
+	} else {
+		printf("Invalid memory channel %d\n",a);
+		usage(progName);
+	}
 }
 
 static void ascii2bin (char *a, char *b, int sa) {
@@ -257,7 +270,8 @@ int main(int argc, char *argv[]) {
 			   ) != -1) {
 		switch (c) {
 		case 'a': /* translate mem channel to memory address */
-			retrieveAddress(strdup(optarg),device,speed,argspeed);
+			/*retrieveAddress(strdup(optarg),device,speed,argspeed);*/
+			getMemoryAddress(optarg,argv[0]);
 			exit(0);
 			break;
 		case 'b': /* brief listing */
