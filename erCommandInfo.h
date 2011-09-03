@@ -89,7 +89,7 @@ typedef struct {
 	void (*setErResponse)(char *);
 	void (*printBrief)(void);
 	void (*printRaw)(void);
-	void (*printVerbose)(void);
+	void (*printLong)(void);
 
 } k3FreqMemInfo;
 

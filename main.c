@@ -37,11 +37,12 @@
 #include "k3mem.h"
 
 static void usage(char * progName) {
-	printf("Usage:\n%s [-v] [-D] [-s speed] [-d device] [-(i|r|b) K3memIndex] : read memories from radio \n", progName);
+	printf("Usage:\n%s [-v] [-D] [-s speed] [-d device] <-(l|r|b)> K3memIndex ...: read memories from radio \n", progName);
 	printf("%s [-a K3memIndex] : translate memory channel number to address \n", progName);
 	printf("%s [-x ERresponse] : translate a raw response \n", progName);
 	printf("%s [-m channel]    : set a memory channel on the radio (like pressing MR) \n", progName);
 	printf("%s --version       : show version \n", progName);
+	printf("\nK3memIndex is a number 0-199, multiple options and ranges are accepted, e.g. %s -b 1 3 7-11\n",progName);
 	exit(1);
 }
 
@@ -227,12 +228,12 @@ int main(int argc, char *argv[]) {
 	int longval;
 	struct option long_options[] = {
 		{"address",required_argument,0,'a'},
-		{"brief",optional_argument,0,'b'},
+		{"brief",no_argument,0,'b'},
 		{"device",required_argument,0,'d'},
 		{"debug",no_argument,0,'D'},
-		{"index",optional_argument,0,'i'},
+		{"long",no_argument,0,'l'},
 		{"memset",optional_argument,0,'m'},
-		{"raw",optional_argument,0,'r'},
+		{"raw",no_argument,0,'r'},
 		{"speed",required_argument,0,'s'},
 		{"verbose",no_argument,0,'v'},
 		{"version",no_argument,&longval,'V'},
@@ -252,7 +253,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc <= 1) usage(argv[0]);
 	while (( c = getopt_long(
-				 argc, argv, "a:bd:Dimrs:vx:", long_options, &option_idx)
+				 argc, argv, "a:bd:Dlmrs:vx:", long_options, &option_idx)
 			   ) != -1) {
 		switch (c) {
 		case 'a': /* translate mem channel to memory address */
@@ -265,7 +266,7 @@ int main(int argc, char *argv[]) {
 		case 'd': /* serial device specified */
 			strncpy(device,optarg,PATH_MAX);
 			break;
-		case 'i': /* verbose listing */
+		case 'l': /* long listing */
 			gotMemIndex = 1;
 			break;
 		case 'm': /* select a memory channel */
@@ -304,7 +305,7 @@ int main(int argc, char *argv[]) {
 		case 'x': /* translate a raw response */
 			printf("%s\n",optarg);
 			memInfo->setErResponse(optarg);
-			memInfo->printVerbose();
+			memInfo->printLong();
 			exit(0);
 			break;
 		case 0:   /* this handles longoptions with no short counterpart */
@@ -317,7 +318,7 @@ int main(int argc, char *argv[]) {
 			}
 			break;
 		default:
-			printf ("option %s", long_options[option_idx].name);
+			printf ("unrecognized option %s", long_options[option_idx].name);
 			if (optarg)
 				printf (" with arg %s", optarg);
 			printf ("\n");
@@ -341,12 +342,18 @@ int main(int argc, char *argv[]) {
 
 		char *curArg = argv[optind++];
 		char *dashIndex = strchr(curArg, '-');
-		int loIndex, hiIndex;
+		int loIndex, hiIndex, tmp;
 
 		if (dashIndex != NULL)
 			sscanf(curArg, "%d-%d", &loIndex, &hiIndex);
 		else
 			loIndex = hiIndex = atoi(curArg);
+
+		if (hiIndex < loIndex) {
+			tmp = loIndex;
+			loIndex = hiIndex;
+			hiIndex = tmp;
+		}
 
 		for (idx = loIndex; idx <= hiIndex; idx++) {
 
@@ -378,7 +385,7 @@ int main(int argc, char *argv[]) {
 			}
 			if (gotMemIndex) {
 				printf("\nMemory channel %d\n", idx);
-				memInfo->printVerbose();
+				memInfo->printLong();
 			}
 		}
 	}

@@ -475,7 +475,7 @@ static void printRaw(void) {
 
 }
 
-static void printVerbose(void) {
+static void printLong(void) {
 	char *lbl;
 	float pl;
 
@@ -553,7 +553,7 @@ k3FreqMemInfo * newK3FreqMemInfo() {
 	m->isSplitOn = &splitOn;
 	m->printBrief = &printBrief;
 	m->printRaw = &printRaw;
-	m->printVerbose = &printVerbose;
+	m->printLong = &printLong;
 	m->setErResponse = &parseResponse;
 
 	return m;
