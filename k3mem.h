@@ -39,6 +39,9 @@
 			printf(fmt, ##args);		\
 	   } while(0)
 
+#define DEFAULT_DEVICE "/dev/ttyS0"
+#define DEFAULT_SPEED  B38400
+
 /* Used in getopt */
 int verbose = 0;          /* -v */
 int	debug = 0;            /* -D */

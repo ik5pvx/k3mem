@@ -241,13 +241,13 @@ int main(int argc, char *argv[]) {
 		{0,0,0,0}
 	};
 	int option_idx = 0;
-	int speed=B38400;
+	int speed=DEFAULT_SPEED;
 	int argspeed=0;
 	int fd;
 	k3FreqMemInfo *memInfo;
 	k3BandMemory *bandmemory[25];
 
-	strncpy(device, "/dev/ttyS0", PATH_MAX);
+	strncpy(device, DEFAULT_DEVICE, PATH_MAX);
 
 	memInfo = newK3FreqMemInfo();
 
