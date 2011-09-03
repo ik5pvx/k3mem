@@ -34,12 +34,14 @@
 
 #include "erCommand.h"
 #include "k3comms.h"
+#include "k3mem.h"
 
 static void usage(char * progName) {
-	printf("Usage:\n%s [-s speed] [-d device] [-(i|r|b) K3memIndex] : read memories from radio \n", progName);
+	printf("Usage:\n%s [-v] [-D] [-s speed] [-d device] [-(i|r|b) K3memIndex] : read memories from radio \n", progName);
 	printf("%s [-a K3memIndex] : translate memory channel number to address \n", progName);
 	printf("%s [-x ERresponse] : translate a raw response \n", progName);
 	printf("%s [-m channel]    : set a memory channel on the radio (like pressing MR) \n", progName);
+	printf("%s --version       : show version \n", progName);
 	exit(1);
 }
 
@@ -49,6 +51,7 @@ static int is_k3(int fd, char *device, int speed)
 	char cmdK3[4] = "K3;\0";
 	int err = 0;
 
+	print_debug("Checking for presence of K3\n");
 	response = k3Command(fd, cmdK3, 50, sizeof(cmdK3));
 	if (!response) {
 		fprintf(stderr, "Unable to determine if device is K3: %s\n",
@@ -211,6 +214,8 @@ int main(int argc, char *argv[]) {
 	char *response = NULL;
 	char device[PATH_MAX+1]; /* maximum path length supported by the OS, from limits.h, plus \0 */
 
+    /* verbose and debug are defined in k3mem.h */
+
 	int gotBrief = 0,         /* -b */
 	    gotMemChoice = 0,     /* -m */
 	    gotMemIndex = 0,      /* -i */
@@ -221,11 +226,13 @@ int main(int argc, char *argv[]) {
 		{"address",required_argument,0,'a'},
 		{"brief",optional_argument,0,'b'},
 		{"device",required_argument,0,'d'},
+		{"debug",no_argument,0,'D'},
 		{"index",optional_argument,0,'i'},
 		{"memset",optional_argument,0,'m'},
 		{"raw",optional_argument,0,'r'},
 		{"speed",required_argument,0,'s'},
-		{"version",no_argument,&longval,'v'},
+		{"verbose",no_argument,0,'v'},
+		{"version",no_argument,&longval,'V'},
 		{"extract",required_argument,0,'x'},
 		{0,0,0,0}
 	};
@@ -242,7 +249,7 @@ int main(int argc, char *argv[]) {
 
 	if (argc <= 1) usage(argv[0]);
 	while (( c = getopt_long(
-				 argc, argv, "a:bd:imrs:vx:", long_options, &option_idx)
+				 argc, argv, "a:bd:Dimrs:vx:", long_options, &option_idx)
 			   ) != -1) {
 		switch (c) {
 		case 'a': /* translate mem channel to memory address */
@@ -263,6 +270,13 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'r': /* raw listing */
 			gotRaw = 1;
+			break;
+		case 'v': /* verbose */
+			verbose = 1;
+			break;
+		case 'D': /* debug */
+			verbose = 1;
+			debug = 1;
 			break;
 		case 's': /* serial speed specified */
 			argspeed = atoi(optarg);
@@ -292,8 +306,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 0:   /* this handles longoptions with no short counterpart */
 			switch (longval) {
-			case 'v': /* version */ /* FIXME: define version somewhere */
-				printf("Version undefined! (%c %d)\n", c, option_idx);
+			case 'V': /* version */ /* FIXME: define version somewhere */
+				printf("Version undefined! (%c - %d)\n", c, option_idx);
+				exit(0);
 				break;
 				/* no default necessary here */
 			}
