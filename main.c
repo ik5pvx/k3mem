@@ -131,6 +131,13 @@ static void ascii2bin (char *a, char *b, int sa) {
 /*	printf("\n");*/
 }
 
+/* decode the content of BandMemory for debug */
+static void decodeBandMemories (k3BandMemory *bandmemory) {
+	int f;
+	f=calcFreq(bandmemory->vfoAfreq,bandmemory->x4);
+	printf ("decodeBandMemories says: %s - %d\n",(char *)bandmemory,f); /* this is nuts */
+	
+}
 static void BandMemoriesStreamtoStruct (char *response,int idx,int count,k3BandMemory **bandmemory) {
 /* not a good idea
 	char format[139]="ER%6c";
@@ -147,10 +154,12 @@ static void BandMemoriesStreamtoStruct (char *response,int idx,int count,k3BandM
 	for (i=0;i<count;i++) {
 		sscanf(response+8+i*32,"%32c",asciirecord);
 		asciirecord[32]='\0';
-		fprintf(stderr,"%s\n",asciirecord);
+		print_debug("Bandmemory %02d: %s\n",idx+i,asciirecord);
 		bandmemory[idx+i] = (k3BandMemory *)malloc(sizeof(k3BandMemory));
 		ascii2bin(asciirecord,record,sizeof(asciirecord));
 		memcpy(bandmemory[idx+i],record,16);
+		if (debug) 
+			decodeBandMemories(bandmemory[idx+i]);
 	}
 }
 
@@ -172,14 +181,15 @@ static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 		strncpy(cmd+2+6, cs, 2);
 		free(cs);
 
-		fprintf(stderr,"Read Band Memory: %s\n",cmd);
+		print_verbose("Read Band Memory: %s\n",cmd);
 
 		response = malloc(139);
 		response = k3Command(fd,cmd,50,139);
 		response[139] = '\0'; /* FIXME: k3Command should do this! */
-		fprintf(stderr,"Response: %s\n",response);
+		print_verbose("Response: %s\n",response);
 		/* FIXME: verify checksum */
 		BandMemoriesStreamtoStruct(response,i*4,4,bandmemory);
+		
 		free (response);
 
 	}
@@ -189,24 +199,17 @@ static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 	checksum(cmd, 2, 2+6, cs);
 	strncpy(cmd+2+6, cs, 2);
 	free(cs);
-	fprintf(stderr,"Read Band Memory: %s\n",cmd);
+	print_verbose("Read Band Memory: %s\n",cmd);
 	response = malloc(43);
 	response = k3Command(fd,cmd,50,43);
 	response[43] = '\0'; /* FIXME: k3Command should do this! */
-	fprintf(stderr,"Response: %s\n",response);
+	print_verbose("Response: %s\n",response);
 	/* FIXME: verify checksum */
 	BandMemoriesStreamtoStruct(response,i*4,1,bandmemory);
 	free (response);
 }
 
 static void getTransverterState(int fd) {
-}
-
-static void decodeBandMemories (k3BandMemory *bandmemory) {
-	int f;
-	f=calcFreq(bandmemory->vfoAfreq,bandmemory->x4);
-	printf ("Gaaah!\n%s\n%d\n",(char *)bandmemory,f); /* this is nuts */
-	
 }
 
 int main(int argc, char *argv[]) {
@@ -327,10 +330,12 @@ int main(int argc, char *argv[]) {
 	if (fd < 0)
 		exit(1);
 
+	/* Before doing anything else on the memories we need to know 
+	   what's in the BandMemories and in the TransverterState memories,
+	   otherwise the output from channel memories is valid only for 
+	   normal (0-99) and quick (m1-m4) memories. */
 	getBandMemories(fd,bandmemory);
 	getTransverterState(fd);
-
-	decodeBandMemories(bandmemory[10]);
 
 	for (i = optind; i < argc; i++) {
 
