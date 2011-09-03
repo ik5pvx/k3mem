@@ -121,13 +121,15 @@ static void memIndexToAddr(int idx, char * cmd) {
 }
 */
 
-static void getMemoryAddress(char *addr,char *progName) {
-	int a;
-	a=atoi(addr);
-	if (a >= 0 && a <=199) {
-		printf("Memory channel %d corresponds to address %s\n",a,"foo");
+/* translate a memory number to an address for debug purposes */
+static void getMemoryAddress(char *chan,char *progName) {
+	int c,addr;
+	c=atoi(chan);
+	if (c >= 0 && c <=199) {
+		addr=MEMORYCHANNEL_START+MEMORYCHANNEL_SIZE*c;
+		printf("Memory channel %d corresponds to address %#06x\n",c,addr);
 	} else {
-		printf("Invalid memory channel %d\n",a);
+		printf("Invalid memory channel %d\n",c);
 		usage(progName);
 	}
 }
