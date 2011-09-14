@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <error.h>
 #include <termios.h>
 #include <stdlib.h>
 
@@ -131,19 +132,43 @@ char *k3Command(int fd, char *cmd, int msecSleep, int bytesToRead)
 {
 
 	char *response;
-	int i, n;
+	int i, n;  /* note that i counts from 0 and bytesToRead from 1 */
 
-	response = malloc(200);
+	response = malloc(200); /* FIXME: what's the maximum length that we could get? */
 	write(fd, cmd, strlen(cmd));
 	usleep(msecSleep*1000);
 
-	for (i = 0; i < bytesToRead; i++) {
-		do { 
-			n = read(fd, response + i, 1); 
-			usleep(100); 
-			/* FIXME: intercept ";" and exit the loop */
-		} while (n != 1);
-	}
 
+    /* we need to poll the serial port until we get all the characters that
+	   we want, i.e. either until the termination character ';' or until 
+	   the expected length of the response */
+	i = 0;
+	while (1) { 
+		n = read (fd, response + i, 1);
+		if ( n < 0 ) { 
+			switch (errno) {
+			case EAGAIN:     /* wait some time and try again */
+				usleep(10); 
+				break;
+			default:         /* die gracefully for all other errors */
+				error(1,errno,
+					  "Error reading data from serial port:\n response is %s\ncount is %d\n",
+					  response,i); 
+				
+				break;
+			}
+			continue;
+		}
+		/* if we get 0 chars back, we are at EOF, i.e. the radio is 
+		   taking its time to answer. Wait and try again */
+		if ( n == 0 ) { usleep(10); continue; }; 
+
+/*		printf("%i %d %d %c %s\n",n,bytesToRead,i,response[i],response);*/
+		if (response[i] == ';' || i++ == bytesToRead-1 ) break;
+
+	}
+		
+
+	response[i+1] = '\0';
 	return response;
 }
