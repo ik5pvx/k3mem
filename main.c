@@ -53,14 +53,13 @@ static void usage(char * progName) {
 }
 
 static void memIndexToAddr(int idx, char * cmd) {
-	char *cs = NULL;
+	char cs[3];
 
 	/* Create ER command leaving room for checksum. */
 	int addr =  BASE_ADDR + (idx * FREQ_MEM_LEN);
 	sprintf(cmd, "ER%04X%02X__;", addr, FREQ_MEM_LEN);
 
 	/* Fill in the underscores in above string with checksum. */
-	cs = malloc(3);
 	checksum(cmd, 2, 2+6, cs);
 	strncpy(cmd+2+6, cs, 2);
 }
