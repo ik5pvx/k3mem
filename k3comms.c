@@ -210,8 +210,12 @@ readmore:
 				return -1;
 			}
 
-			if ((resbuf[offset] == ';') ||
-			    (offset+1 == resbuf_len) ||
+			if (resbuf[offset] == ';') {
+				offset++;
+				goto out;
+			}
+
+			if ((offset+1 == resbuf_len) ||
 			    ((readlen > 0) && (offset == readlen)))
 				goto out;
 
