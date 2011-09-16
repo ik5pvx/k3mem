@@ -189,6 +189,7 @@ int k3cmd(int fd, const char *cmd,
 	memset(resbuf, 0, resbuf_len);
 
 	while (1) {
+reselect:
 		FD_ZERO (&read_fds);
 		FD_SET(fd, &read_fds);
 
@@ -203,8 +204,11 @@ int k3cmd(int fd, const char *cmd,
 		/* do the fancy read here */
 		if (FD_ISSET(fd, &read_fds)) {
 readmore:
-			if (read(fd, resbuf + offset, 1) != 1)
+			if (read(fd, resbuf + offset, 1) != 1) {
+				if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
+					goto reselect;
 				return -1;
+			}
 
 			if ((resbuf[offset] == ';') ||
 			    (offset+1 == resbuf_len) ||
