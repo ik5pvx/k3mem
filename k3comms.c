@@ -88,43 +88,81 @@ static int configure_ser(int fd, int speed)
 	return tcsetattr(fd, TCSANOW, &options);
 }
 
-int open_ser(char *device, int speed)
+static int is_k3(int fd)
 {
-	int fd;
-	fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
-	if (fd < 0)
-		return fd;
+	char *response = NULL;
+	char cmdK3[4] = "K3;\0";
+	int err = 0;
 
-	if (configure_ser(fd, speed) < 0) {
-		close(fd);
-		fd = -1;
-		goto out;
-	}
+	response = k3Command(fd, cmdK3, 50, sizeof(cmdK3));
+	if (!response)
+		return -1;
 
-out:
-	return (fd);
+	if (strncmp(response, "K3", 2))
+		err = -2;
+
+	free(response);
+	return err;
 }
 
-int setMemChannel(int fd, int memNum)
+int k3open(const char *device, int speed,
+	   char *errbuf, size_t errbuf_len)
 {
-	char cmd[8];
-	int err = 0;
-	size_t cmdlen = 0;
-	ssize_t writelen = 0;
+	int fd;
+	int saveerr;
+	int err;
 
-	sprintf(cmd, "MC%03d;", memNum);
-	cmdlen = strlen(cmd);
-	writelen = write(fd, cmd, cmdlen);
-	if (writelen != cmdlen)
-		err = -1;
+	if ((!device) || (!errbuf) || (errbuf_len <= 255)) {
+		errno = EINVAL;
+		return -1;
+	}
 
-	/*
-	 * do we really need this?
-	 * k3mem exits right away and nothing happens after this
-	 */
-	usleep(600e3);
+	fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
+	if (fd < 0) {
+		saveerr = errno;
+		snprintf(errbuf, errbuf_len,
+			 "Unable to open serial device: %s\n",
+			 strerror(saveerr));
+		errno = saveerr;
+		return -1;
+	}
 
-	return err;
+	if (configure_ser(fd, speed) < 0) {
+		saveerr = errno;
+		close(fd);
+		snprintf(errbuf, errbuf_len,
+			 "Unable to configure serial device: %s\n",
+			 strerror(saveerr));
+		errno = saveerr;
+		return -1;
+	}
+
+	err = is_k3(fd);
+	if (err < 0) {
+		switch(err) {
+			case -2:
+				snprintf(errbuf, errbuf_len,
+					 "Device connected on %s"
+					 "at %d baud is not a K3.\n",
+					 device, speed);
+				break;
+			case -1:
+				snprintf(errbuf, errbuf_len,
+					 "Unable to determine if device is K3\n");
+				break;
+			default:
+
+				break;
+		}
+		close(fd);
+		return -1;
+	}
+	return fd;
+}
+
+int k3close(int fd)
+{
+	return close(fd);
 }
 
 char *k3Command(int fd, char *cmd, int msecSleep, int bytesToRead)

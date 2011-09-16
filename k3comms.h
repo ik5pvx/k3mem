@@ -27,8 +27,16 @@
 #ifndef __K3COMMS_H__
 #define __K3COMMS_H__
 
-int open_ser(char *device, int speed);
-int setMemChannel(int fd, int memNum);
+/*
+ * device -> path to serial device (ex: /dev/ttyS0)
+ * speed  -> B38400/B19200...
+ * errbuf -> pointer to a char buffer of at least 255 bytes where to store
+ *           errors
+ */
+int k3open(const char *device, int speed,
+	   char *errbuf, size_t errbuf_len);
+int k3close(int fd);
+
 char *k3Command(int fd, char *cmd, int msecSleep, int bytesToRead);
 
 #endif /* __K3COMMS_H__ */

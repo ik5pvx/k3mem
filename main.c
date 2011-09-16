@@ -46,50 +46,6 @@ static void usage(char * progName) {
 	exit(1);
 }
 
-static int is_k3(int fd, char *device, int speed)
-{
-	char *response = NULL;
-	char cmdK3[4] = "K3;\0";
-	int err = 0;
-
-	print_debug("Checking for presence of K3\n");
-	response = k3Command(fd, cmdK3, 50, sizeof(cmdK3));
-	if (!response) {
-		fprintf(stderr, "Unable to determine if device is K3: %s\n",
-			strerror(errno));
-		return -1;
-	}
-
-	if (strncmp(response, "K3", 2)) {
-		fprintf(stderr, "Whatever is connected on %s"
-				"at %d baud is not a K3.\n"
-				"Response was: %s\n",
-				device, speed, response);
-		err = -1;
-	}
-	free(response);
-	return err;
-}
-
-static int openk3(char *device, int speed)
-{
-	int fd;
-
-	fd = open_ser(device, speed);
-	if (fd < 0) {
-		fprintf(stderr, "Unable to open serial device: %s\n",
-			strerror(errno));
-		return -1;	
-	}
-
-	if (is_k3(fd, device, speed)) {
-		close(fd);
-		fd = -1;
-	}
-
-	return fd;
-}
-
 static void memIndexToAddr(int idx, char * cmd) {
 	char *cs = NULL;
 
@@ -228,10 +184,38 @@ static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 static void getTransverterState(int fd) {
 }
 
+/*
+ * XXXX: turn this one into a k3Command or kittens will die!'
+ */
+static int setMemChannel(int fd, int memNum)
+{
+	char cmd[8];
+	int err = 0;
+	size_t cmdlen = 0;
+	ssize_t writelen = 0;
+
+	sprintf(cmd, "MC%03d;", memNum);
+	cmdlen = strlen(cmd);
+	writelen = write(fd, cmd, cmdlen);
+	if (writelen != cmdlen)
+		err = -1;
+
+	/*
+	 * do we really need this?
+	 * k3mem exits right away and nothing happens after this
+	 */
+	usleep(600e3);
+
+	return err;
+}
+
+#define ERRBUF_LEN 1024
+
 int main(int argc, char *argv[]) {
 	char c, cmd[9];
 	char *response = NULL;
 	char device[PATH_MAX+1]; /* maximum path length supported by the OS, from limits.h, plus \0 */
+	char errbuf[ERRBUF_LEN+1];
 
     /* verbose and debug are defined in k3mem.h */
 
@@ -343,9 +327,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	fd = openk3(device, speed);
-	if (fd < 0)
+	fd = k3open(device, speed, errbuf, ERRBUF_LEN);
+	if (fd < 0) {
+		fprintf(stderr, "%s", errbuf);
 		exit(1);
+	}
 
 	/* Before doing anything else on the memories we need to know 
 	   what's in the BandMemories and in the TransverterState memories,
@@ -405,6 +391,6 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
-	close(fd);
+	k3close(fd);
 	exit(0);
 }
