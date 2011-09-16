@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <termios.h>
 #include <stdlib.h>
+#include <sys/select.h>
 
 #include "k3comms.h"
 
@@ -90,19 +91,15 @@ static int configure_ser(int fd, int speed)
 
 static int is_k3(int fd)
 {
-	char *response = NULL;
-	char cmdK3[4] = "K3;\0";
-	int err = 0;
+	char response[256];
 
-	response = k3Command(fd, cmdK3, 50, sizeof(cmdK3));
-	if (!response)
+	if (k3cmd(fd, "K3;\0", response, sizeof(response), 0) <= 0);
 		return -1;
 
 	if (strncmp(response, "K3", 2))
-		err = -2;
+		return -2;
 
-	free(response);
-	return err;
+	return 0;
 }
 
 int k3open(const char *device, int speed,
@@ -165,23 +162,61 @@ int k3close(int fd)
 	return close(fd);
 }
 
-char *k3Command(int fd, char *cmd, int msecSleep, int bytesToRead)
+int k3cmd(int fd, const char *cmd,
+	  char *resbuf, size_t resbuf_len,
+	  int readlen)
 {
+	fd_set read_fds;
+	struct timeval tv;
+	int err;
+	int offset = 0;
 
-	char *response;
-	int i, n;
-
-	response = malloc(200);
-	write(fd, cmd, strlen(cmd));
-	usleep(msecSleep*1000);
-
-	for (i = 0; i < bytesToRead; i++) {
-		do { 
-			n = read(fd, response + i, 1); 
-			usleep(100); 
-			/* FIXME: intercept ";" and exit the loop */
-		} while (n != 1);
+	if ((fd < 0) || (!cmd) ||
+	    (!resbuf) || (!resbuf_len) ||
+	    (readlen+1 >= resbuf_len)) {
+		errno = EINVAL;
+		return -1;
 	}
 
-	return response;
+	/* send command to k3 */
+	err = write(fd, cmd, strlen(cmd));
+
+	/* let's keep it simple write for now */
+	if ((readlen < 0) || (err < 0))
+		return err;
+
+	/* always clean the buffer */
+	memset(resbuf, 0, resbuf_len);
+
+	while (1) {
+		FD_ZERO (&read_fds);
+		FD_SET(fd, &read_fds);
+
+		tv.tv_sec = 5;
+		tv.tv_usec = 0;
+
+		err = select((fd + 1), &read_fds, 0, 0, &tv);
+		/* take the easy way out for now */
+		if (err <= 0)
+			return err;
+
+		/* do the fancy read here */
+		if (FD_ISSET(fd, &read_fds)) {
+readmore:
+			if (read(fd, resbuf + offset, 1) != 1)
+				return -1;
+
+			if ((resbuf[offset] == ';') ||
+			    (offset+1 == resbuf_len) ||
+			    ((readlen > 0) && (offset == readlen)))
+				goto out;
+
+			offset++;
+			goto readmore;
+		} else {
+			return -1;
+		}
+	}
+out:
+	return offset;
 }

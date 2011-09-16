@@ -32,11 +32,35 @@
  * speed  -> B38400/B19200...
  * errbuf -> pointer to a char buffer of at least 255 bytes where to store
  *           errors
+ *
+ * return fd on success, -1 on error and errno + errbuf are set
  */
 int k3open(const char *device, int speed,
 	   char *errbuf, size_t errbuf_len);
+
+/*
+ * fd         -> serial file descriptor from k3open
+ */
 int k3close(int fd);
 
-char *k3Command(int fd, char *cmd, int msecSleep, int bytesToRead);
+/*
+ * fd         -> serial file descriptor from k3open
+ * cmd        -> command to send to k3
+ * resbuf     -> pointer to a buffer where to store the result
+ * resbuf_len -> length of the above buffer
+ * readlen    -> expected bytes to read in response and store in resbuf
+ *               readlen > 0 expects N bytes (will break at ";")
+ *               readlen = 0 unknown bytes to read (will break at ";")
+ *               readlen < 0 do not expect an answer back
+ *               (NOTE: readlen must be at least one char smaller than resbuf_len)
+ *
+ * return -1 on error,
+ *         0 if no bytes have been read or timeout waiting for data
+ *        >0 number of bytes read from the response
+ * 
+ */
+int k3cmd(int fd, const char *cmd,
+	  char *resbuf, size_t resbuf_len,
+	  int readlen);
 
 #endif /* __K3COMMS_H__ */

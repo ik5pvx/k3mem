@@ -36,6 +36,12 @@
 #include "k3comms.h"
 #include "k3mem.h"
 
+#define ERRBUF_LEN 1024
+#define RESBUF_LEN 1024
+
+static char errbuf[ERRBUF_LEN+1];
+static char resbuf[RESBUF_LEN+1];
+
 static void usage(char * progName) {
 	printf("Usage:\n%s [-v] [-D] [-s speed] [-d device] <-(l|r|b)> K3memIndex ...: read memories from radio \n", progName);
 	printf("%s [-a K3memIndex] : translate memory channel number to address \n", progName);
@@ -138,7 +144,7 @@ static void BandMemoriesStreamtoStruct (char *response,int idx,int count,k3BandM
 static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 	int i, addr, count;
 	char cmd[12];
-	char *cs = NULL, *response = NULL;
+	char cs[3];
 
 	/* read 4 bandmemories at a time, including reserved ones 
 	   plus the last one (25 bands total) */
@@ -148,74 +154,50 @@ static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 		sprintf(cmd,"ER%04X%02X__;",addr,count);
 
 		/* Fill in the underscores in above string with checksum. */
-		cs = malloc(3);
 		checksum(cmd, 2, 2+6, cs);
 		strncpy(cmd+2+6, cs, 2);
-		free(cs);
 
 		print_verbose("Read Band Memory: %s\n",cmd);
 
-		response = malloc(139);
-		response = k3Command(fd,cmd,50,139);
-		response[139] = '\0'; /* FIXME: k3Command should do this! */
-		print_verbose("Response: %s\n",response);
+		if (k3cmd(fd, cmd, resbuf, RESBUF_LEN, 139) <= 0) {
+			print_verbose("Error reading band memory!\n");
+			exit(1);
+		}
+		print_verbose("Response: %s\n",resbuf);
 		/* FIXME: verify checksum */
-		BandMemoriesStreamtoStruct(response,i*4,4,bandmemory);
-		
-		free (response);
+		BandMemoriesStreamtoStruct(resbuf,i*4,4,bandmemory);
 
 	}
 	addr = NORMAL_BANDMEMORY_START + BANDMEMORY_SIZE * 24;
 	sprintf(cmd,"ER%04X%02X__;",addr,BANDMEMORY_SIZE);
-	cs = malloc(3);
 	checksum(cmd, 2, 2+6, cs);
 	strncpy(cmd+2+6, cs, 2);
-	free(cs);
 	print_verbose("Read Band Memory: %s\n",cmd);
-	response = malloc(43);
-	response = k3Command(fd,cmd,50,43);
-	response[43] = '\0'; /* FIXME: k3Command should do this! */
-	print_verbose("Response: %s\n",response);
+	if (k3cmd(fd, cmd, resbuf, RESBUF_LEN, 43) <= 0) {
+		print_verbose("Error reading band memory!\n");
+		exit(1);
+	}
+
+	print_verbose("Response: %s\n",resbuf);
 	/* FIXME: verify checksum */
-	BandMemoriesStreamtoStruct(response,i*4,1,bandmemory);
-	free (response);
+	BandMemoriesStreamtoStruct(resbuf,i*4,1,bandmemory);
 }
 
 static void getTransverterState(int fd) {
 }
 
-/*
- * XXXX: turn this one into a k3Command or kittens will die!'
- */
 static int setMemChannel(int fd, int memNum)
 {
 	char cmd[8];
-	int err = 0;
-	size_t cmdlen = 0;
-	ssize_t writelen = 0;
 
 	sprintf(cmd, "MC%03d;", memNum);
-	cmdlen = strlen(cmd);
-	writelen = write(fd, cmd, cmdlen);
-	if (writelen != cmdlen)
-		err = -1;
 
-	/*
-	 * do we really need this?
-	 * k3mem exits right away and nothing happens after this
-	 */
-	usleep(600e3);
-
-	return err;
+	return k3cmd(fd, cmd, resbuf, RESBUF_LEN, -1);
 }
-
-#define ERRBUF_LEN 1024
 
 int main(int argc, char *argv[]) {
 	char c, cmd[9];
-	char *response = NULL;
 	char device[PATH_MAX+1]; /* maximum path length supported by the OS, from limits.h, plus \0 */
-	char errbuf[ERRBUF_LEN+1];
 
     /* verbose and debug are defined in k3mem.h */
 
@@ -363,7 +345,7 @@ int main(int argc, char *argv[]) {
 				usage(argv[0]);
 
 			if (gotMemChoice) {
-				if (setMemChannel(fd, idx)) {
+				if (setMemChannel(fd, idx) <= 0) {
 					fprintf(stderr,
 						"Unable to set mem chan"
 						"Error: %s\n", strerror(errno));
@@ -373,9 +355,11 @@ int main(int argc, char *argv[]) {
 			}
 
 			memIndexToAddr(idx, cmd); /* Calculate eeprom address of idx. */
-			response = k3Command(fd, cmd, 10, 139); /* Send ER cmd. */
-			memInfo->setErResponse(response);
-			free(response);
+			if (k3cmd(fd, cmd, resbuf, RESBUF_LEN, 139) <= 0) {
+				printf("Error getting ER response\n");
+				exit(1);
+			}
+			memInfo->setErResponse(resbuf);
 
 			if (gotBrief) {
 				printf("%3d: ", idx);
