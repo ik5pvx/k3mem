@@ -93,7 +93,7 @@ static int is_k3(int fd)
 {
 	char response[256];
 
-	if (k3cmd(fd, "K3;\0", response, sizeof(response), 0) <= 0);
+	if (k3cmd(fd, "K3;\0", response, sizeof(response), 0) <= 0)
 		return -1;
 
 	if (strncmp(response, "K3", 2))
