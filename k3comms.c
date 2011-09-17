@@ -37,6 +37,10 @@
 
 #include "k3comms.h"
 
+#define BUF_LEN 256
+static char buf[BUF_LEN+1];
+static char AIstatus[5];
+
 static int configure_ser(int fd, int speed)
 {
 	struct termios options;
@@ -93,13 +97,38 @@ static int configure_ser(int fd, int speed)
 
 static int is_k3(int fd)
 {
-	char response[256];
-
-	if (k3cmd(fd, "K3;\0", response, sizeof(response), 0) <= 0)
+	if (k3cmd(fd, "K3;\0", buf, BUF_LEN, 0) <= 0)
 		return -1;
 
-	if (strncmp(response, "K3", 2))
+	if (strncmp(buf, "K3", 2))
 		return -2;
+
+	return 0;
+}
+
+static int get_ai_status(int fd)
+{
+	memset(AIstatus, 0, sizeof(AIstatus));
+
+	if (k3cmd(fd, "AI;\0", buf, BUF_LEN, 0) <= 0)
+		return -1;
+
+	strncpy(AIstatus, buf, sizeof(AIstatus));
+	return 0;
+}
+
+static int set_ai_status(int fd)
+{
+	if (k3cmd(fd, "AI0;\0", buf, BUF_LEN, -1) <= 0)
+		return -1;
+
+	return 0;
+}
+
+static int restore_ai_status(int fd)
+{
+	if (k3cmd(fd, AIstatus, buf, BUF_LEN, -1) <= 0)
+		return -1;
 
 	return 0;
 }
@@ -156,11 +185,29 @@ int k3open(const char *device, int speed,
 		close(fd);
 		return -1;
 	}
+
+	err = get_ai_status(fd);
+	if (err < 0) {
+		snprintf(errbuf, errbuf_len,
+			 "Unable to determine AI status of K3\n");
+		close(fd);
+		return -1;
+	}
+
+	err = set_ai_status(fd);
+	if (err < 0) {
+		snprintf(errbuf, errbuf_len,
+			 "Unable to set AI status of K3 to 0\n");
+		close(fd);
+		return -1;
+	}
+
 	return fd;
 }
 
 int k3close(int fd)
 {
+	restore_ai_status(fd);
 	return close(fd);
 }
 
