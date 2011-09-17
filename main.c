@@ -117,6 +117,11 @@ static void decodeBandMemories (k3BandMemory *bandmemory) {
 	printf ("decodeBandMemories says: %s - %d\n",(char *)bandmemory,f); /* this is nuts */
 	
 }
+/* decode the content of TransverterState for debug */
+static void decodeTransverterState (k3TransverterState *transverterstate) {
+	printf ("decodeTransverterState says: %s\n",(char *)transverterstate); /* this is nuts */
+	
+}
 static void BandMemoriesStreamtoStruct (char *response,int idx,int count,k3BandMemory **bandmemory) {
 /* not a good idea
 	char format[139]="ER%6c";
@@ -185,8 +190,25 @@ static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 }
 
 static void TransverterStateStreamtoStruct(char *stream,
-										   k3TransverterState **transverterstatetransverterstate) {
+										   k3TransverterState **transverterstate) {
+	int i;
+	char asciirecord[TRANSVERTERSTATE_SIZE*2+1];
+	char record[TRANSVERTERSTATE_SIZE];
+
 	printf("FFFFFFFUUUUUUUUUUUU\n%s\n",stream);
+	for (i=0; i<TRANSVERTERSTATE_COUNT; i++) {
+		sscanf(stream+i*TRANSVERTERSTATE_SIZE*2,"%20c",asciirecord);
+		asciirecord[TRANSVERTERSTATE_SIZE*2]='\0';
+		print_debug("Transverter State %02d: %s\n",i,asciirecord);
+		transverterstate[i] = (k3TransverterState *)malloc(sizeof(k3TransverterState));
+		ascii2bin(asciirecord,record,sizeof(asciirecord));
+		memcpy(transverterstate[i],record,TRANSVERTERSTATE_SIZE);
+		if (debug) 
+			decodeTransverterState(transverterstate[i]);
+	
+
+	}
+
 }
 
 
