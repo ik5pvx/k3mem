@@ -6,6 +6,8 @@
  *		Mike Markowski, AB3AP
  * Copyright (C) 2011-
  *		Pierfrancesco Caci, IK5PVX
+ * Copyright (C) 2011-
+ *		Fabio M. Di Nitto
  *
  * This file is part of k3mem
  *
