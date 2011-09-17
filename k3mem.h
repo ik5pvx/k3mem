@@ -27,6 +27,8 @@
 #ifndef __K3MEM_H__
 #define __K3MEM_H__
 
+#define K3MEMVERSION "0.4.0"
+
 #define print_debug(fmt, args...)		\
 	do {								\
 	    if (debug)						\

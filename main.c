@@ -294,7 +294,7 @@ int main(int argc, char *argv[]) {
 		case 0:   /* this handles longoptions with no short counterpart */
 			switch (longval) {
 			case 'V': /* version */ /* FIXME: define version somewhere */
-				printf("Version undefined! (%c - %d)\n", c, option_idx);
+				printf("%s version %s\n", argv[0], K3MEMVERSION);
 				exit(0);
 				break;
 				/* no default necessary here */
