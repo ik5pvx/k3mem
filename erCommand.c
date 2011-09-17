@@ -58,7 +58,7 @@ int checksum(char asciiHex[], int from, int to, char * checksumAscii) {
 	sum = 0x100 - sum;
 	sum &= 0xFF; /* same as: sum = sum % 0x100 */
 
-	sprintf(checksumAscii, "%2X", sum);
+	sprintf(checksumAscii, "%02X", sum);
 	return sum;
 }
 

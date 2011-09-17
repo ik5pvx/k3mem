@@ -184,32 +184,43 @@ static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 	BandMemoriesStreamtoStruct(resbuf,i*4,1,bandmemory);
 }
 
+static void TransverterStateStreamtoStruct(char *stream,
+										   k3TransverterState **transverterstatetransverterstate) {
+	printf("FFFFFFFUUUUUUUUUUUU\n%s\n",stream);
+}
+
+
 static void getTransverterState(int fd,
 								k3TransverterState **transverterstate) {
 	int addr,count;
 	char cmd[12];
 	char cs[3];
 
+	char stream[0x90*2]; /* the raw content of the whole memory area */
+	memset(stream,0,sizeof(stream));
+	
 	/* read the first chunk of TransverterState */
 	addr = TRANSVERTERSTATE_START;
 	count = 0x40; /* FIXME: I'm not really sure we have 9 slots of 0x0A bytes 
 					 here, hence I'm hardcoding 0x40 as this is how the 
 					 official tool does it */
 	sprintf(cmd,"ER%04X%02X__;",addr,count);
-		/* Fill in the underscores in above string with checksum. */
-		checksum(cmd, 2, 2+6, cs);
-		strncpy(cmd+2+6, cs, 2);
+	/* Fill in the underscores in above string with checksum. */
+	checksum(cmd, 2, 2+6, cs);
+	strncpy(cmd+2+6, cs, 2);
 
-		print_verbose("Read TransverterState: %s\n",cmd);
+	print_verbose("Read TransverterState: %s\n",cmd);
 
-		if (k3cmd(fd, cmd, resbuf, RESBUF_LEN, 139) <= 0) {
-			print_verbose("Error reading transverter state!\n");
-			exit(1);
-		}
-		print_verbose("Response: %s\n",resbuf);
-		/* FIXME: verify checksum */
-		/* FIXME: replace this with appropriate translation for transverters */
-/*		BandMemoriesStreamtoStruct(resbuf,i*4,4,bandmemory);*/
+	if (k3cmd(fd, cmd, resbuf, RESBUF_LEN, 139) <= 0) {
+		print_verbose("Error reading transverter state!\n");
+		exit(1);
+	}
+	print_verbose("Response: %s\n",resbuf);
+	/* FIXME: verify checksum */
+
+	/* save the raw stream */
+	strncpy(stream,resbuf+2+6,0x40*2);
+	/* printf("foo: %s\n",stream);*/
 
 	/* read the second chunk of TransverterState */
 	addr = TRANSVERTERSTATE_START+0x40;
@@ -217,21 +228,24 @@ static void getTransverterState(int fd,
 					 here, hence I'm hardcoding 0x1A as this is how the 
 					 official tool does it */
 	sprintf(cmd,"ER%04X%02X__;",addr,count);
-		/* Fill in the underscores in above string with checksum. */
-		checksum(cmd, 2, 2+6, cs);
-		strncpy(cmd+2+6, cs, 2);
+	/* Fill in the underscores in above string with checksum. */
+	checksum(cmd, 2, 2+6, cs);
+	strncpy(cmd+2+6, cs, 2);
 
-		print_verbose("Read TransverterState: %s\n",cmd);
+	print_verbose("Read TransverterState: %s\n",cmd);
 
-		if (k3cmd(fd, cmd, resbuf, RESBUF_LEN, 139) <= 0) {
-			print_verbose("Error reading transverter state!\n");
-			exit(1);
-		}
-		print_verbose("Response: %s\n",resbuf);
-		/* FIXME: verify checksum */
-		/* FIXME: replace this with appropriate translation for transverters */
-/*		BandMemoriesStreamtoStruct(resbuf,i*4,4,bandmemory);*/
+	if (k3cmd(fd, cmd, resbuf, RESBUF_LEN, 139) <= 0) {
+		print_verbose("Error reading transverter state!\n");
+		exit(1);
+	}
+	print_verbose("Response: %s\n",resbuf);
+	/* FIXME: verify checksum */
 
+	/* save the raw stream appending it to the previous one */
+	strncpy(stream+0x40*2,resbuf+2+6,0x1a*2);
+	/* printf("foo: %s\n",stream); */
+
+	TransverterStateStreamtoStruct(stream,transverterstate);
 }
 
 static int setMemChannel(int fd, int memNum)
