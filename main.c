@@ -184,7 +184,54 @@ static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 	BandMemoriesStreamtoStruct(resbuf,i*4,1,bandmemory);
 }
 
-static void getTransverterState(int fd) {
+static void getTransverterState(int fd,
+								k3TransverterState **transverterstate) {
+	int addr,count;
+	char cmd[12];
+	char cs[3];
+
+	/* read the first chunk of TransverterState */
+	addr = TRANSVERTERSTATE_START;
+	count = 0x40; /* FIXME: I'm not really sure we have 9 slots of 0x0A bytes 
+					 here, hence I'm hardcoding 0x40 as this is how the 
+					 official tool does it */
+	sprintf(cmd,"ER%04X%02X__;",addr,count);
+		/* Fill in the underscores in above string with checksum. */
+		checksum(cmd, 2, 2+6, cs);
+		strncpy(cmd+2+6, cs, 2);
+
+		print_verbose("Read TransverterState: %s\n",cmd);
+
+		if (k3cmd(fd, cmd, resbuf, RESBUF_LEN, 139) <= 0) {
+			print_verbose("Error reading transverter state!\n");
+			exit(1);
+		}
+		print_verbose("Response: %s\n",resbuf);
+		/* FIXME: verify checksum */
+		/* FIXME: replace this with appropriate translation for transverters */
+/*		BandMemoriesStreamtoStruct(resbuf,i*4,4,bandmemory);*/
+
+	/* read the second chunk of TransverterState */
+	addr = TRANSVERTERSTATE_START+0x40;
+	count = 0x1a; /* FIXME: I'm not really sure we have 9 slots of 0x0A bytes 
+					 here, hence I'm hardcoding 0x1A as this is how the 
+					 official tool does it */
+	sprintf(cmd,"ER%04X%02X__;",addr,count);
+		/* Fill in the underscores in above string with checksum. */
+		checksum(cmd, 2, 2+6, cs);
+		strncpy(cmd+2+6, cs, 2);
+
+		print_verbose("Read TransverterState: %s\n",cmd);
+
+		if (k3cmd(fd, cmd, resbuf, RESBUF_LEN, 139) <= 0) {
+			print_verbose("Error reading transverter state!\n");
+			exit(1);
+		}
+		print_verbose("Response: %s\n",resbuf);
+		/* FIXME: verify checksum */
+		/* FIXME: replace this with appropriate translation for transverters */
+/*		BandMemoriesStreamtoStruct(resbuf,i*4,4,bandmemory);*/
+
 }
 
 static int setMemChannel(int fd, int memNum)
@@ -228,6 +275,7 @@ int main(int argc, char *argv[]) {
 	int fd;
 	k3FreqMemInfo *memInfo;
 	k3BandMemory *bandmemory[25];
+	k3TransverterState *transverterstate[9];
 
 	strncpy(device, DEFAULT_DEVICE, PATH_MAX);
 
@@ -321,7 +369,7 @@ int main(int argc, char *argv[]) {
 	   otherwise the output from channel memories is valid only for 
 	   normal (0-99) and quick (m1-m4) memories. */
 	getBandMemories(fd,bandmemory);
-	getTransverterState(fd);
+	getTransverterState(fd,transverterstate);
 
 	for (i = optind; i < argc; i++) {
 

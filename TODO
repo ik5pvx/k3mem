@@ -1,5 +1,5 @@
 - add some more comments in the code
-- expand options (come to mind: version, ... )
+- expand options (come to mind: ? )
 - autodetect serial speed
 - decode the transverter memories
 - save to file
