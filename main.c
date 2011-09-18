@@ -112,15 +112,29 @@ static void ascii2bin (char *a, char *b, int sa) {
 
 /* decode the content of BandMemory for debug */
 static void decodeBandMemories (k3BandMemory *bandmemory) {
-	int f;
-	f=calcFreq(bandmemory->vfoAfreq,bandmemory->x4);
-	printf ("decodeBandMemories says: %s - %d\n",(char *)bandmemory,f); /* this is nuts */
-	
+	printf("\tVFO A\t\t\t: %d\n",calcFreq(bandmemory->vfoAfreq,bandmemory->x4));
+	printf("\tVFO B\t\t\t: %d\n",calcFreq(bandmemory->vfoBfreq,bandmemory->x4));
+	printf("\tVFO B mode\t\t: %c\n",bandmemory->vfoBmode);
+	printf("\tVFO A mode\t\t: %c\n",bandmemory->vfoAmode);
+	printf("\tx1 (mode)\t\t: %x\n",bandmemory->x1);
+	printf("\tx2 (mode)\t\t: %x\n",bandmemory->x2);
+	printf("\tx3 (other)\t\t: %x\n",bandmemory->x3);
+	printf("\tx4 (other)\t\t: %x\n",bandmemory->x4);
+	printf("\tx5 (other)\t\t: %x\n",bandmemory->x5);
 }
 /* decode the content of TransverterState for debug */
 static void decodeTransverterState (k3TransverterState *transverterstate) {
-	printf ("decodeTransverterState says: %s\n",(char *)transverterstate); /* this is nuts */
-	
+	printf("\tx1 (flags)\t\t: %x\n",transverterstate[0].x1);
+	printf("\tx2 (if band)\t\t: %x\n",transverterstate[0].x2);
+	printf("\tx3 (base frq MHz)\t: %x\n",transverterstate[0].x3);
+	printf("\tx4 (base frq 100*MHz)\t: %x\n",transverterstate[0].x4);
+	printf("\tx5 (offset?)\t\t: %x\n",transverterstate[0].x5);
+	printf("\tx6 (offset?)\t\t: %x\n",transverterstate[0].x6);
+	printf("\tx7 (power .1*W)\t\t: %x\n",transverterstate[0].x7);
+	printf("\tx8 (unknown)\t\t: %x\n",transverterstate[0].x8);
+	printf("\tx9 (unknown)\t\t: %x\n",transverterstate[0].x9);
+	printf("\tx10(unknown)\t\t: %x\n",transverterstate[0].x10);
+	printf("\n");
 }
 static void BandMemoriesStreamtoStruct (char *response,int idx,int count,k3BandMemory **bandmemory) {
 /* not a good idea
@@ -195,7 +209,7 @@ static void TransverterStateStreamtoStruct(char *stream,
 	char asciirecord[TRANSVERTERSTATE_SIZE*2+1];
 	char record[TRANSVERTERSTATE_SIZE];
 
-	printf("FFFFFFFUUUUUUUUUUUU\n%s\n",stream);
+	/*printf("FFFFFFFUUUUUUUUUUUU\n%s\n",stream);*/
 	for (i=0; i<TRANSVERTERSTATE_COUNT; i++) {
 		sscanf(stream+i*TRANSVERTERSTATE_SIZE*2,"%20c",asciirecord);
 		asciirecord[TRANSVERTERSTATE_SIZE*2]='\0';
