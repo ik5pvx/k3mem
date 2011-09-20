@@ -45,6 +45,9 @@
 static char errbuf[ERRBUF_LEN+1];
 static char resbuf[RESBUF_LEN+1];
 
+static k3BandMemory bandmemory[BANDMEMORY_COUNT];
+static k3TransverterState transverterstate[TRANSVERTERSTATE_COUNT];
+
 /* simple help for the program */
 static void usage(char * progName) {
 	printf("Usage:\n%s [-v] [-D] [-s speed] [-d device] <-(l|r|b)> K3memIndex ...: read memories from radio \n", progName);
@@ -118,7 +121,7 @@ static void ascii2bin (char *a, char *b, int sa) {
 }
 
 /* decode the content of BandMemory for debug */
-static void decodeBandMemories (k3BandMemory *bandmemory) {
+static void decodeBandMemories (int i) {
 	printf("\tVFO A\t\t\t: %d\n",calcFreq(bandmemory->vfoAfreq,bandmemory->x4));
 	printf("\tVFO B\t\t\t: %d\n",calcFreq(bandmemory->vfoBfreq,bandmemory->x4));
 	printf("\tVFO B mode\t\t: %c\n",bandmemory->vfoBmode);
@@ -130,22 +133,22 @@ static void decodeBandMemories (k3BandMemory *bandmemory) {
 	printf("\tx5 (other)\t\t: %x\n",bandmemory->x5);
 }
 /* decode the content of TransverterState for debug */
-static void decodeTransverterState (k3TransverterState *transverterstate) {
-	printf("\tx1 (flags)\t\t: %x\n",transverterstate[0].x1);
-	printf("\tx2 (if band)\t\t: %x\n",transverterstate[0].x2);
-	printf("\tx3 (base frq MHz)\t: %x\n",transverterstate[0].x3);
-	printf("\tx4 (base frq 100*MHz)\t: %x\n",transverterstate[0].x4);
-	printf("\tx5 (offset?)\t\t: %x\n",transverterstate[0].x5);
-	printf("\tx6 (offset?)\t\t: %x\n",transverterstate[0].x6);
-	printf("\tx7 (power .1*W)\t\t: %x\n",transverterstate[0].x7);
-	printf("\tx8 (unknown)\t\t: %x\n",transverterstate[0].x8);
-	printf("\tx9 (unknown)\t\t: %x\n",transverterstate[0].x9);
-	printf("\tx10(unknown)\t\t: %x\n",transverterstate[0].x10);
+static void decodeTransverterState (int i) {
+	printf("\tx1 (flags)\t\t: %x\n",transverterstate[i].x1);
+	printf("\tx2 (if band)\t\t: %x\n",transverterstate[i].x2);
+	printf("\tx3 (base frq MHz)\t: %x\n",transverterstate[i].x3);
+	printf("\tx4 (base frq 100*MHz)\t: %x\n",transverterstate[i].x4);
+	printf("\tx5 (offset?)\t\t: %x\n",transverterstate[i].x5);
+	printf("\tx6 (offset?)\t\t: %x\n",transverterstate[i].x6);
+	printf("\tx7 (power .1*W)\t\t: %x\n",transverterstate[i].x7);
+	printf("\tx8 (unknown)\t\t: %x\n",transverterstate[i].x8);
+	printf("\tx9 (unknown)\t\t: %x\n",transverterstate[i].x9);
+	printf("\tx10(unknown)\t\t: %x\n",transverterstate[i].x10);
 	printf("\n");
 }
 
 /* convert the stream containing Band Memories to the corresponding struct */
-static void BandMemoriesStreamtoStruct (char *response,int idx,int count,k3BandMemory **bandmemory) {
+static void BandMemoriesStreamtoStruct (char *response,int idx,int count) {
 	int i;
 	char asciirecord[33];
 	char record[16];
@@ -153,16 +156,15 @@ static void BandMemoriesStreamtoStruct (char *response,int idx,int count,k3BandM
 		sscanf(response+8+i*32,"%32c",asciirecord);
 		asciirecord[32]='\0';
 		print_debug("Bandmemory %02d: %s\n",idx+i,asciirecord);
-		bandmemory[idx+i] = (k3BandMemory *)malloc(sizeof(k3BandMemory));
 		ascii2bin(asciirecord,record,sizeof(asciirecord));
-		memcpy(bandmemory[idx+i],record,16);
+		memcpy(&(bandmemory[idx+i]),record,16);
 		if (debug) 
-			decodeBandMemories(bandmemory[idx+i]);
+			decodeBandMemories(idx+i);
 	}
 }
 
 /* read the content of BandMemories from EEPROM */
-static void getBandMemories(int fd,k3BandMemory **bandmemory) {
+static void getBandMemories(int fd) {
 	int i, addr, count;
 	char cmd[12];
 	char cs[3];
@@ -186,7 +188,7 @@ static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 		}
 		print_verbose("Response: %s\n",resbuf);
 		/* FIXME: verify checksum */
-		BandMemoriesStreamtoStruct(resbuf,i*4,4,bandmemory);
+		BandMemoriesStreamtoStruct(resbuf,i*4,4);
 
 	}
 	addr = NORMAL_BANDMEMORY_START + BANDMEMORY_SIZE * 24;
@@ -201,12 +203,11 @@ static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 
 	print_verbose("Response: %s\n",resbuf);
 	/* FIXME: verify checksum */
-	BandMemoriesStreamtoStruct(resbuf,i*4,1,bandmemory);
+	BandMemoriesStreamtoStruct(resbuf,i*4,1);
 }
 
 /* convert the stream containing Transverter Memories to its struct */
-static void TransverterStateStreamtoStruct(char *stream,
-										   k3TransverterState **transverterstate) {
+static void TransverterStateStreamtoStruct(char *stream) {
 	int i;
 	char asciirecord[TRANSVERTERSTATE_SIZE*2+1];
 	char record[TRANSVERTERSTATE_SIZE];
@@ -215,11 +216,10 @@ static void TransverterStateStreamtoStruct(char *stream,
 		sscanf(stream+i*TRANSVERTERSTATE_SIZE*2,"%20c",asciirecord);
 		asciirecord[TRANSVERTERSTATE_SIZE*2]='\0';
 		print_debug("Transverter State %02d: %s\n",i,asciirecord);
-		transverterstate[i] = (k3TransverterState *)malloc(sizeof(k3TransverterState));
 		ascii2bin(asciirecord,record,sizeof(asciirecord));
-		memcpy(transverterstate[i],record,TRANSVERTERSTATE_SIZE);
+		memcpy(&(transverterstate[i]),record,TRANSVERTERSTATE_SIZE);
 		if (debug) 
-			decodeTransverterState(transverterstate[i]);
+			decodeTransverterState(i);
 	
 
 	}
@@ -227,8 +227,7 @@ static void TransverterStateStreamtoStruct(char *stream,
 }
 
 /* retrieve the content of TransverterState from eeprom */
-static void getTransverterState(int fd,
-								k3TransverterState **transverterstate) {
+static void getTransverterState(int fd) {
 	int addr,count;
 	char cmd[12];
 	char cs[3];
@@ -282,7 +281,7 @@ static void getTransverterState(int fd,
 	strncpy(stream+0x40*2,resbuf+2+6,0x1a*2);
 	/* printf("foo: %s\n",stream); */
 
-	TransverterStateStreamtoStruct(stream,transverterstate);
+	TransverterStateStreamtoStruct(stream);
 }
 
 /* change the current mem channel on the radio
@@ -328,8 +327,6 @@ int main(int argc, char *argv[]) {
 	int argspeed=0;
 	int fd;
 	k3FreqMemInfo *memInfo;
-	k3BandMemory *bandmemory[25];
-	k3TransverterState *transverterstate[9];
 
 	strncpy(device, DEFAULT_DEVICE, PATH_MAX);
 
@@ -423,8 +420,8 @@ int main(int argc, char *argv[]) {
 	   what's in the BandMemories and in the TransverterState memories,
 	   otherwise the output from channel memories is valid only for 
 	   normal (0-99) and quick (m1-m4) memories. */
-	getBandMemories(fd,bandmemory);
-	getTransverterState(fd,transverterstate);
+	getBandMemories(fd);
+	getTransverterState(fd);
 
 	for (i = optind; i < argc; i++) {
 
