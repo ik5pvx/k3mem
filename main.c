@@ -38,12 +38,14 @@
 #include "k3comms.h"
 #include "k3mem.h"
 
+/* should we move these to a .h ? */
 #define ERRBUF_LEN 1024
 #define RESBUF_LEN 1024
 
 static char errbuf[ERRBUF_LEN+1];
 static char resbuf[RESBUF_LEN+1];
 
+/* simple help for the program */
 static void usage(char * progName) {
 	printf("Usage:\n%s [-v] [-D] [-s speed] [-d device] <-(l|r|b)> K3memIndex ...: read memories from radio \n", progName);
 	printf("%s [-a K3memIndex] : translate memory channel number to address \n", progName);
@@ -54,6 +56,7 @@ static void usage(char * progName) {
 	exit(1);
 }
 
+/* convert a memory channel number to ER command with address and checksum */ 
 static void memIndexToAddr(int idx, char * cmd) {
 	char cs[3];
 
@@ -97,6 +100,10 @@ static void getMemoryAddress(char *chan,char *progName) {
 	}
 }
 
+/* convert an ascii stream to the corresponding binary value:
+   the stream is an ascii representation of hex values, one per nibble,
+   hence to get the binary values 2 hex values must be converted
+   to a binary byte */
 static void ascii2bin (char *a, char *b, int sa) {
 	int sb=sa/2;
 /*	printf("HHHH %d %d\nGoo:",sa,sb);*/
@@ -136,16 +143,9 @@ static void decodeTransverterState (k3TransverterState *transverterstate) {
 	printf("\tx10(unknown)\t\t: %x\n",transverterstate[0].x10);
 	printf("\n");
 }
+
+/* convert the stream containing Band Memories to the corresponding struct */
 static void BandMemoriesStreamtoStruct (char *response,int idx,int count,k3BandMemory **bandmemory) {
-/* not a good idea
-	char format[139]="ER%6c";
-	int i;
-	for (i=0;i<count;i++){
-		strcat(format,"%32c");
-	}
-	strcat(format,"%2c;");
-	fprintf(stderr,"%s %d\n",format, idx);
-*/	
 	int i;
 	char asciirecord[33];
 	char record[16];
@@ -161,6 +161,7 @@ static void BandMemoriesStreamtoStruct (char *response,int idx,int count,k3BandM
 	}
 }
 
+/* read the content of BandMemories from EEPROM */
 static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 	int i, addr, count;
 	char cmd[12];
@@ -203,13 +204,13 @@ static void getBandMemories(int fd,k3BandMemory **bandmemory) {
 	BandMemoriesStreamtoStruct(resbuf,i*4,1,bandmemory);
 }
 
+/* convert the stream containing Transverter Memories to its struct */
 static void TransverterStateStreamtoStruct(char *stream,
 										   k3TransverterState **transverterstate) {
 	int i;
 	char asciirecord[TRANSVERTERSTATE_SIZE*2+1];
 	char record[TRANSVERTERSTATE_SIZE];
 
-	/*printf("FFFFFFFUUUUUUUUUUUU\n%s\n",stream);*/
 	for (i=0; i<TRANSVERTERSTATE_COUNT; i++) {
 		sscanf(stream+i*TRANSVERTERSTATE_SIZE*2,"%20c",asciirecord);
 		asciirecord[TRANSVERTERSTATE_SIZE*2]='\0';
@@ -225,7 +226,7 @@ static void TransverterStateStreamtoStruct(char *stream,
 
 }
 
-
+/* retrieve the content of TransverterState from eeprom */
 static void getTransverterState(int fd,
 								k3TransverterState **transverterstate) {
 	int addr,count;
@@ -284,6 +285,8 @@ static void getTransverterState(int fd,
 	TransverterStateStreamtoStruct(stream,transverterstate);
 }
 
+/* change the current mem channel on the radio
+   does this function really belong here? */
 static int setMemChannel(int fd, int memNum)
 {
 	char cmd[8];
@@ -293,6 +296,7 @@ static int setMemChannel(int fd, int memNum)
 	return k3cmd(fd, cmd, resbuf, RESBUF_LEN, -1);
 }
 
+/* the kitchen sink */
 int main(int argc, char *argv[]) {
 	char c, cmd[9];
 	char device[PATH_MAX+1]; /* maximum path length supported by the OS, from limits.h, plus \0 */
@@ -408,6 +412,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	/* serial port communications start here */
 	fd = k3open(device, speed, errbuf, ERRBUF_LEN);
 	if (fd < 0) {
 		fprintf(stderr, "%s", errbuf);
